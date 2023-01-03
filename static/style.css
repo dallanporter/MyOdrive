@@ -1,0 +1,24 @@
+body {
+    background-color:black;
+    color:white;
+}
+
+#main_canvas {
+    display:inline-block;
+    width:900px;
+}
+
+#param_table {
+    display:inline-block;
+    vertical-align: top;
+}
+
+.pending_highlight {
+    background-color:red;
+}
+
+.axis_col_heading {
+    font-size: 1.4em;
+    font-weight: bold;
+    padding: 10px;
+}

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Odrive Web UI</title>
+        <script src="/static/js/jquery-3.6.2.min.js"></script>
+        <script src="/static/js/socket.io.js"></script>
+        <script src="/static/js/createjs.min.js" ></script>
+        <script src="/static/js/odrive.js"></script>
+        <script src="/static/js/app.js" ></script>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <h1>This is the Odrive configuration page for the pan tilt head.</h1>
+        <div class="row">
+            <input type="radio" name="telem_rate" value="2">2Hz
+            <input type="radio" name="telem_rate" value="5">5Hz
+            <input type="radio" name="telem_rate" value="10">10Hz
+            <input type="radio" name="telem_rate" value="20">20Hz
+        </div>
+        <div class="param_editor">
+            <table id="param_table">            
+                <tr>
+                    <td>Bus Voltage</td>
+                    <td><span class="value" id="vbus_voltage">XXX</span></td>
+                    <td></td>
+                    <td>Error:</td>
+                    <td><span class="value" id="error">XXX</span></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <span class="axis_col_heading">Tilt Axis [axis0]</span>
+                    </td>
+                    <td></td>
+                    <td colspan="2">
+                        <span class="axis_col_heading">Pan Axis [axis1]</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        current_state
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--current_state">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        current_state
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--current_state">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <button class="button_state button_calibrate_axis" type="button" name="button_calibrate_axis0" disabled>Full Calibration</button>
+                        <button class="button_state button_arm" type="button" name="button_enable_axis0" disabled>Arm Axis (closed loop)</button>                        
+                    </td>
+                    <td></td>
+                    <td colspan="2">                                                
+                        <button class="button_state button_calibrate_axis" type="button" name="button_calibrate_axis1" disabled>Full Calibration</button>
+                        <button class="button_state button_arm" type="button" name="button_enable_axis1" disabled>Arm Axis (closed loop)</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        encoder.shadow_count:
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--encoder--shadow_count">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        encoder.shadow_count:
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--encoder--shadow_count">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.pos_setpoint:
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--controller--pos_setpoint">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.pos_setpoint:
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--controller--pos_setpoint">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.pos_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--pos_gain" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.pos_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--pos_gain" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.vel_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--vel_gain" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.vel_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--vel_gain" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.vel_integrator_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--vel_integrator_gain" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.vel_integrator_gain
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--vel_integrator_gain" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.vel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--vel_limit" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.vel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--vel_limit" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.vel_ramp_rate
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--vel_ramp_rate" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.vel_ramp_rate
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--vel_ramp_rate" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        controller.config.torque_ramp_rate
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--controller--config--torque_ramp_rate" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        controller.config.torque_ramp_rate
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--controller--config--torque_ramp_rate" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        trap_traj.config.vel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--trap_traj--config--vel_limit" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        trap_traj.config.vel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--trap_traj--config--vel_limit" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        trap_traj.config.accel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--trap_traj--config--accel_limit" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        trap_traj.config.accel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--trap_traj--config--accel_limit" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        trap_traj.config.decel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--trap_traj--config--decel_limit" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        trap_traj.config.decel_limit
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--trap_traj--config--decel_limit" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2"><strong>Motor</strong></td>
+                    <td></td>
+                    <td colspan="2"><strong>Motor</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <button class="button_state button_calibrate_motor" type="button" name="button_calibrate_motor0" disabled>Calibrate Motor</button>                        
+                    </td>
+                    <td></td>
+                    <td colspan="2">                                                
+                        <button class="button_state button_calibrate_motor" type="button" name="button_calibrate_motor1" disabled>Calibrate Motor</button>                        
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.is_armed
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--is_armed">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.is_armed
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--is_armed">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.is_calibrated
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--is_calibrated">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.is_calibrated
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--is_calibrated">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.error
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--error">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.error
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--error">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.I_bus
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--I_bus">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.I_bus
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--I_bus">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.current_meas_phA
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--current_meas_phA">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.current_meas_phA
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--current_meas_phA">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.current_meas_phB
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--current_meas_phB">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.current_meas_phB
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--current_meas_phB">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.current_meas_phC
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--current_meas_phC">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.current_meas_phC
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--current_meas_phC">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.DC_calib_phA
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--DC_calib_phA">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.DC_calib_phA
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--DC_calib_phA">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.DC_calib_phB
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--DC_calib_phB">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.DC_calib_phB
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--DC_calib_phB">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.DC_calib_phC
+                    </td>
+                    <td>
+                        <span class="value" id="axis0--motor--DC_calib_phC">XX</span>
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.DC_calib_phC
+                    </td>
+                    <td>
+                        <span class="value" id="axis1--motor--DC_calib_phC">XX</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.config.current_lim
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--motor--config--current_lim" value="XX">
+                    </td>
+                    <td></td>
+                    <td>
+                        motor.config.current_lim                        
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--motor--config--current_lim" value="XX">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        motor.config.torque_lim
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis0--motor--config--torque_lim" value="XX">
+                    </td>
+                    <td></td>
+                    <td>                        
+                        motor.config.torque_lim
+                    </td>
+                    <td>
+                        <input type="text" class="value" id="axis1--motor--config--torque_lim" value="XX">
+                    </td>
+                </tr>
+            </table>
+            <div><button id="save_button" type="button">Save Changes to Odrive</button></div>
+        </div>
+        <canvas id="main_canvas" width="900" height="500"></canvas>
+        
+        
+    </body>
+</html>
