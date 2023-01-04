@@ -407,436 +407,122 @@ class Controller():
         pass
 
 
-        "ODrive.Encoder": {
+class Encoder():
+    error = None
+    is_ready = None
+    index_found = None
+    shadow_count = None
+    count_in_cpr  = None
+    interpolation = None
+    phase = None
+    pos_estimate = None
+    pos_estimate_counts = None
+    pos_circular = None
+    pos_cpr_counts = None
+    delta_pos_cpr_counts = None
+    hall_state = None
+    vel_estimate = None
+    vel_estimate_counts = None
+    calib_scan_response = None
+    pos_abs = None
+    spi_error_rate = None
+    config = {
+        'mode': None,
+        'use_index': None,
+        'index_offset': None,
+        'use_index_offset': None,
+        'find_idx_on_lockin_only': None,
+        'abs_spi_cs_gpio_pin': None,
+        'cpr': None,
+        'phase_offset': None,
+        'phase_offset_float': None,
+        'direction': None,
+        'pre_calibrated': None,
+        'enable_phase_interpolation': None,
+        'bandwidth': None,
+        'calib_range': None,
+        'calib_scan_distance': None,
+        'calib_scan_omega': None,
+        'ignore_illegal_hall_state': None,
+        'hall_polarity': None,
+        'hall_polarity_calibrated': None,
+        'sincos_gpio_pin_sin': None,
+        'sincos_gpio_pin_cos': None
+    }
 
-                error
-                    nullflag
-                    flags
-                        UNSTABLE_GAIN
-                        CPR_POLEPAIRS_MISMATCH
-
-                        NO_RESPONSE
-
-                        UNSUPPORTED_ENCODER_MODE
-                        ILLEGAL_HALL_STATE
-
-                        INDEX_NOT_FOUND_YET
-
-                        ABS_SPI_TIMEOUT
-                        ABS_SPI_COM_FAIL
-                        ABS_SPI_NOT_READY
-                        HALL_NOT_CALIBRATED_YET
-
-
-                is_ready
-                index_found
-                shadow_count
-
-                count_in_cpr
-
-                interpolation
-                phase
+    def set_linear_count():
+        pass
                     
+class SensorlessEstimator():
+    error = None
+    phase = None
+    pll_pos = None
+    phase_vel = None
+    vel_estimate = None
+    config = {
+        'observer_gain': None,
+        'pll_bandwidth': None,
+        'pm_flux_linkage': None
+    }
 
-                pos_estimate
-                    
+class TrapezoidalTrajectory():
+    config = {
+        'vel_limit':None,
+        'accel_limit':None,
+        'decel_limit':None
+    }
 
-                pos_estimate_counts
-
-                pos_circular
-                    
-
-                pos_cpr_counts
-
-                delta_pos_cpr_counts
-
-                hall_state
-                vel_estimate
-                    
-
-                vel_estimate_counts
-
-                calib_scan_response
-                pos_abs
-
-                spi_error_rate
-                config
-
-                        mode
-                        use_index
+class Endstop():
+    endstop_state = None
+    config = {
+        'gpio_num':None,
+        'enabled':None,
+        'offset':None,
+        'is_active_high':None,
+        'debounce_ms':None
+    }
                             
-
-                        index_offset
-
-                        use_index_offset
-
-                        find_idx_on_lockin_only
-                            
-
-                        abs_spi_cs_gpio_pin
-                            
-
-                        cpr
-
-                        phase_offset
-                        phase_offset_float
-                        direction
-                        pre_calibrated
-                            
-
-                        enable_phase_interpolation
-                        bandwidth
-                            
-
-                        calib_range
-
-                        calib_scan_distance
-                            default
-
-                        calib_scan_omega
-                            default
-
-                        ignore_illegal_hall_state
-
-                        hall_polarity
-                        hall_polarity_calibrated
-                        sincos_gpio_pin_sin
-
-                        sincos_gpio_pin_cos
-
-
-
-
-            functions
-                set_linear_count
-                    in
-                        count
-
-
-
-
-
-        "ODrive.SensorlessEstimator": {
-
-                error
-                    nullflag
-                    flags
-                        UNSTABLE_GAIN
-                        UNKNOWN_CURRENT_MEASUREMENT
-
-
-                phase
-                    
-
-                pll_pos
-
-                phase_vel
-                    
-
-                vel_estimate
-                    
-
-                config
-
-                        observer_gain
-                        pll_bandwidth
-                        pm_flux_linkage
-
-
-
-
-        "ODrive.TrapezoidalTrajectory": {
-
-                config
-
-                        vel_limit
-
-                        accel_limit
-
-                        decel_limit
-
-
-
-
-
-        "ODrive.Endstop": {
-
-                endstop_state
-                config
-
-                        gpio_num
-                            
-
-                        enabled
-                            
-
-                        offset
-
-                        is_active_high
-                        debounce_ms
-                            
-
-
-
-
-
-        "ODrive.MechanicalBrake": {
-
-                config
-
-                        gpio_num
-                            
-
-                        is_active_low
-
-
-
-            functions
-                engage
-
-                release
-
-
-
-        "ODrive.TaskTimer": {
-
-                start_time
-                end_time
-                length
-                max_length
-
-
-        ODrive3
-
-            implements
-                config
-
-                    implements
-                        gpio1_mode
-
-
-                        gpio2_mode
-
-
-                        gpio3_mode
-
-
-                        gpio4_mode
-
-
-                        gpio5_mode
-
-
-                        gpio6_mode
-
-
-                        gpio7_mode
-
-
-                        gpio8_mode
-
-
-                        gpio9_mode
-
-
-                        gpio10_mode
-
-
-                        gpio11_mode
-
-
-                        gpio12_mode
-
-
-                        gpio13_mode
-
-
-                        gpio14_mode
-
-
-                        gpio15_mode
-
-
-                        gpio16_mode
-
-
-                        gpio1_pwm_mapping
-
-
-                        gpio2_pwm_mapping
-
-
-                        gpio3_pwm_mapping
-
-
-                        gpio4_pwm_mapping
-
-
-
-
-                axis0
-
-
-                axis1
-
-
-
-
-
-    valuetypes
-        "ODrive.GpioMode": {
-            values
-                DIGITAL
-
-                DIGITAL_PULL_UP
-
-                DIGITAL_PULL_DOWN
-
-                ANALOG_IN
-
-                UART_A
-
-                UART_B
-
-                UART_C
-
-                CAN_A
-
-                I2C_A
-
-                SPI_A
-                    "even though SPI_A is exposed": null,
-                    "this mode is of no use on ODrive v3.x.": null
-
-                PWM
-
-                ENC0
-
-                ENC1
-
-                ENC2
-
-                MECH_BRAKE
-
-                STATUS
-
-
-
-        "ODrive.StreamProtocolType": {
-            values
-                Fibre
-
-                Ascii
-
-                Stdout
-
-                AsciiAndStdout
-
-
-
-        "ODrive.Can.Protocol": {
-            flags
-                SIMPLE
-
-
-
-        "ODrive.Axis.AxisState": {
-            values
-                UNDEFINED
-
-                IDLE
-
-                STARTUP_SEQUENCE
-
-                FULL_CALIBRATION_SEQUENCE
-
-                MOTOR_CALIBRATION
-
-                ENCODER_INDEX_SEARCH
-                    value
-
-                ENCODER_OFFSET_CALIBRATION
-
-                CLOSED_LOOP_CONTROL
-
-                LOCKIN_SPIN
-
-                ENCODER_DIR_FIND
-
-                HOMING
-
-                ENCODER_HALL_POLARITY_CALIBRATION
-
-                ENCODER_HALL_PHASE_CALIBRATION
-
-
-
-        "ODrive.Encoder.Mode": {
-            values
-                INCREMENTAL
-                HALL
-                SINCOS
-                SPI_ABS_CUI
-                    value
-
-                SPI_ABS_AMS
-                    value
-
-                SPI_ABS_AEAT
-                    value
-
-                SPI_ABS_RLS
-                    value
-
-                SPI_ABS_MA732
-                    value
-
-
-
-        "ODrive.Controller.ControlMode": {
-            values
-                VOLTAGE_CONTROL
-
-                TORQUE_CONTROL
-
-                VELOCITY_CONTROL
-
-                POSITION_CONTROL
-
-
-
-        "ODrive.Controller.InputMode": {
-            values
-                INACTIVE
-
-                PASSTHROUGH
-
-                VEL_RAMP
-
-                POS_FILTER
-
-                MIX_CHANNELS
-
-                TRAP_TRAJ
-
-                TORQUE_RAMP
-
-                MIRROR
-
-                TUNING
-
-
-
-        "ODrive.Motor.MotorType": {
-            values
-                HIGH_CURRENT
-
-                GIMBAL
-                    value
-
-                ACIM
-
-
-
-
-}
+class MechanicalBrake():
+    config = {
+        'gpio_num':None,
+        'is_active_low':None
+    }
+    def engage():
+        pass
+    
+    def release():
+        pass
+
+
+
+class TaskTimer():
+    start_time = None
+    end_time = None
+    length = None
+    max_length = None
+
+class ODrive3():
+    config = {
+        'gpio1_mode': None,
+        'gpio2_mode': None,
+        'gpio3_mode': None,
+        'gpio4_mode': None,
+        'gpio5_mode': None,
+        'gpio6_mode': None,
+        'gpio7_mode': None,
+        'gpio8_mode': None,
+        'gpio9_mode': None,
+        'gpio10_mode': None,
+        'gpio11_mode': None,
+        'gpio12_mode': None,
+        'gpio13_mode': None,
+        'gpio14_mode': None,
+        'gpio15_mode': None,
+        'gpio16_mode': None,
+        'gpio1_pwm_mapping': None,
+        'gpio2_pwm_mapping': None,
+        'gpio3_pwm_mapping': None,
+        'gpio4_pwm_mapping': None,
+    }
+    axis0 = None
+    axis1 = None

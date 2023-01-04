@@ -6,8 +6,6 @@ import time
 import asyncio
 import json
 from aiohttp import web
-import socketio
-from odrivesimulator import OdriveSimulator
 from threading import Thread
 import math
 import yaml
