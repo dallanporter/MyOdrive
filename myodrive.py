@@ -1,5 +1,8 @@
 
 import odrive_enums as odenums
+import odrive
+import asyncio
+import json
 
 class Can():
     error:odenums.CanError = None
@@ -10,7 +13,7 @@ class Can():
 
 
 class Endpoint():
-    endpoint:Endpoint = None
+    endpoint = None
     min:float = None
     max:float = None
 
@@ -404,82 +407,145 @@ class Oscilloscope():
             }
         }
             
-
-@classproperty_support
 class MyOdrive():
-    error:odenums.Error = None
-    vbus_voltage:float = None
-    ibus:float = None
     
-    _ibus_report_filter_k:float = None
-    
-    @classproperty
-    def ibus_report_filter_k(self, value):
-        self._ibus_report_filter_k = value
-        
-    serial_number:int = None
-    hw_version_major:int = None
-    hw_version_minor:int = None
-    hw_version_variant:int = None
-    fw_version_major:int = None
-    fw_version_minor:int = None
-    fw_version_revision:int = None
-    fw_version_unreleased:int = None
-    brake_resistor_armed:bool = None
-    brake_resistor_saturated:bool = None
-    brake_resistor_current:float = None
-    n_evt_sampling:int = None
-    n_evt_control_loop:int = None
-    task_timers_armed:bool = None
-    task_times = {
-        'sampling': None,
-        'control_loop_misc':None,
-        'control_loop_checks':None,
-        'dc_calib_wait':None
-    }
-    system_stats = {
-        'uptime': None,
-        'min_heap_space': None,
-        'max_stack_usage_axis': None,
-        'max_stack_usage_usb': None,
-        'max_stack_usage_uart': None,
-        'max_stack_usage_can': None,
-        'max_stack_usage_startup': None,
-        'max_stack_usage_analog': None,
-        'stack_size_axis': None,
-        'stack_size_usb': None,
-        'stack_size_uart': None,
-        'stack_size_startup': None,
-        'stack_size_can': None,
-        'stack_size_analog': None,
-        'prio_axis': None,
-        'prio_usb': None,
-        'prio_uart': None,
-        'prio_startup': None,
-        'prio_can': None,
-        'prio_analog': None,
-        'usb': {                                                
-                'rx_cnt': None,
-                'tx_cnt': None,
-                'tx_overrun_cnt': None                    
-        },
-        'i2c': {                                                
-                'addr': None,
-                'addr_match_cnt': None,
-                'rx_cnt': None,
-                'error_cnt': None,
-        }
-    }
-    user_config_loaded:int = None
-    misconfigured:bool = None
-    oscilloscope:Oscilloscope = None
-    can:Can = None
-    test_property:int = None
-    otp_valid:bool = None
+    _odrives = {}
     
     def __init__(self):
-        # MyOdrive constructor
-        pass
+        print("Inside MyOdrive.__init__() constructor")  
+        self._odrive:odrive = None # the instance of the connected odrive
+        self.error:odenums.Error = None
+        self.vbus_voltage:float = None
+        self.ibus:float = None        
+        self.serial_number:int = None
+        self.ibus_report_filter_k:float = None
+        self.hw_version_major:int = None
+        self.hw_version_minor:int = None
+        self.hw_version_variant:int = None
+        self.fw_version_major:int = None
+        self.fw_version_minor:int = None
+        self.fw_version_revision:int = None
+        self.fw_version_unreleased:int = None
+        self.brake_resistor_armed:bool = None
+        self.brake_resistor_saturated:bool = None
+        self.brake_resistor_current:float = None
+        self.n_evt_sampling:int = None
+        self.n_evt_control_loop:int = None
+        self.task_timers_armed:bool = None
+        self.task_times = {
+            'sampling': None,
+            'control_loop_misc':None,
+            'control_loop_checks':None,
+            'dc_calib_wait':None
+        }
+        self.system_stats = {
+            'uptime': None,
+            'min_heap_space': None,
+            'max_stack_usage_axis': None,
+            'max_stack_usage_usb': None,
+            'max_stack_usage_uart': None,
+            'max_stack_usage_can': None,
+            'max_stack_usage_startup': None,
+            'max_stack_usage_analog': None,
+            'stack_size_axis': None,
+            'stack_size_usb': None,
+            'stack_size_uart': None,
+            'stack_size_startup': None,
+            'stack_size_can': None,
+            'stack_size_analog': None,
+            'prio_axis': None,
+            'prio_usb': None,
+            'prio_uart': None,
+            'prio_startup': None,
+            'prio_can': None,
+            'prio_analog': None,
+            'usb': {                                                
+                    'rx_cnt': None,
+                    'tx_cnt': None,
+                    'tx_overrun_cnt': None                    
+            },
+            'i2c': {                                                
+                    'addr': None,
+                    'addr_match_cnt': None,
+                    'rx_cnt': None,
+                    'error_cnt': None,
+            }
+        }
+        self.user_config_loaded:int = None
+        self.misconfigured:bool = None
+        self.oscilloscope:Oscilloscope = None
+        self.can:Can = None
+        self.test_property:int = None
+        self.otp_valid:bool = None  
+   
+    @classmethod
+    async def handleSocketMessage(cls, message):
+        print("Inside the MyOdrive SocketIO message handler")
+        result = {}
+        try:
+            if type(message) is str:
+                message = json.loads(message)
+                
+            if type(message) is not dict:
+                print("Failed to parse socket message in handleSocketMessage")
+                result['error'] = "Invalid message format"
+                return result
+            
+            serial_number = message.serial_number            
+            drive = cls._odrives[serial_number]
+            
+            if drive == None:
+                print("Failed to get odrive with serial number " + serial_number)
+                result['error'] = "Odrive with this serial number is not found"
+                return result
+            else:
+                result['serial_number'] = serial_number
+                result['vbus_voltage'] = drive.vbus_voltage
+        except Exception as ex:
+            print("Caught exception handling the socket message in MyOdrive.")
+        
+        return result
+    
+    @classmethod
+    async def list_odrives(cls):
+        print("Inside static function show_odrives()")
+        return list(cls._odrives.keys())
+        
+    @classmethod
+    def get_odrive(cls, serialnumber:str):
+        print("Inside get_odrive(" + serialnumber + ")")
+        # todo return a MyOdrive instance for this specific odrive
+    
+    @classmethod
+    def fromSerialNumber(cls, serialnumber:str):
+        print("Inside MyOdrive.fromSerialNumber()" + str)
+        
+    @classmethod
+    async def initialize(cls):
+        asyncio.create_task(cls.detectOdrives())
+        while True:
+            print("MyOdrive update timer tick")
+            await asyncio.sleep(5)
+        
+            
+    @classmethod
+    async def detectOdrives(cls):
+        print("Inside MyOdrive.update()")
+        while True:
+            try:
+                found = await odrive.find_any_async()
+                serial_number = str(found.serial_number)
+                if serial_number in cls._odrives.keys():
+                    print("We already have " + serial_number + " odrive")
+                else:
+                    print("We found an odrive: " + serial_number)
+                    cls._odrives[serial_number] = found    
+                
+            except Exception as ex:
+                print(ex)
+            await asyncio.sleep(10)
+            
+        
     
     def test_function(delta:int) -> float:
         pass
@@ -539,3 +605,4 @@ class ODrive3(MyOdrive):
     }
     axis0 = None
     axis1 = None
+

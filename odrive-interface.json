@@ -23,11 +23,11 @@
                         },
                         "DC_BUS_UNDER_VOLTAGE": {
                             "brief": "The DC voltage fell below the limit configured in `config.dc_bus_undervoltage_trip_level`.",
-                            "doc": "Confirm that your power leads are connected securely. For initial\ntesting a 12V PSU which can supply a couple of amps should be\nsufficient while the use of low current \u00e2\u20ac\u02dcwall wart\u00e2\u20ac\u2122 plug packs may\nlead to inconsistent behaviour and is not recommended.\n\nYou can monitor your PSU voltage using liveplotter in odrivetool\nby entering `start_liveplotter(lambda: [odrv0.vbus_voltage])`. If\nyou see your votlage drop below `config.dc_bus_undervoltage_trip_level`\n(default: ~ 8V) then you will trip this error. Even a relatively\nsmall motor can draw multiple kW momentary and so unless you have\na very large PSU or are running of a battery you may encounter\nthis error when executing high speed movements with a high current\nlimit. To limit your PSU power draw you can limit your motor\ncurrent and/or velocity limit `Axis:controller.config.vel_limit` and\n`Axis:motor.config.current_lim`.\n"
+                            "doc": "Confirm that your power leads are connected securely. For initial\ntesting a 12V PSU which can supply a couple of amps should be\nsufficient while the use of low current \u2018wall wart\u2019 plug packs may\nlead to inconsistent behaviour and is not recommended.\n\nYou can monitor your PSU voltage using liveplotter in odrivetool\nby entering `start_liveplotter(lambda: [odrv0.vbus_voltage])`. If\nyou see your votlage drop below `config.dc_bus_undervoltage_trip_level`\n(default: ~ 8V) then you will trip this error. Even a relatively\nsmall motor can draw multiple kW momentary and so unless you have\na very large PSU or are running of a battery you may encounter\nthis error when executing high speed movements with a high current\nlimit. To limit your PSU power draw you can limit your motor\ncurrent and/or velocity limit `Axis:controller.config.vel_limit` and\n`Axis:motor.config.current_lim`.\n"
                         },
                         "DC_BUS_OVER_VOLTAGE": {
                             "brief": "The DC voltage exceeded the limit configured in `config.dc_bus_overvoltage_trip_level`.",
-                            "doc": "Confirm that you have a brake resistor of the correct value\nconnected securely and that `config.brake_resistance` is set to\nthe value of your brake resistor.\n\nYou can monitor your PSU voltage using liveplotter in odrivetool\nby entering `start_liveplotter(lambda: [odrv0.vbus_voltage])`. If\nduring a move you see the voltage rise above your PSU\u00e2\u20ac\u2122s nominal\nset voltage then you have your brake resistance set too low. This\nmay happen if you are using long wires or small gauge wires to\nconnect your brake resistor to your odrive which will added extra\nresistance. This extra resistance needs to be accounted for to\nprevent this voltage spike. If you have checked all your\nconnections you can also try increasing your brake resistance by\n~ 0.01 ohm at a time to a maximum of 0.05 greater than your brake\nresistor value.\n"
+                            "doc": "Confirm that you have a brake resistor of the correct value\nconnected securely and that `config.brake_resistance` is set to\nthe value of your brake resistor.\n\nYou can monitor your PSU voltage using liveplotter in odrivetool\nby entering `start_liveplotter(lambda: [odrv0.vbus_voltage])`. If\nduring a move you see the voltage rise above your PSU\u2019s nominal\nset voltage then you have your brake resistance set too low. This\nmay happen if you are using long wires or small gauge wires to\nconnect your brake resistor to your odrive which will added extra\nresistance. This extra resistance needs to be accounted for to\nprevent this voltage spike. If you have checked all your\nconnections you can also try increasing your brake resistance by\n~ 0.01 ohm at a time to a maximum of 0.05 greater than your brake\nresistor value.\n"
                         },
                         "DC_BUS_OVER_REGEN_CURRENT": {
                             "doc": "Current flowing back into the power supply exceeded `config.dc_max_negative_current`.\nThis can happen if your brake resistor is disabled or unable to handle the braking current.\n\nCheck that `config.enable_brake_resistor` is `True` and that\n`(V_power_supply / Brake_resistance) > (total motor.config.current_lim + total motor.config.current_lim_margin)`.\n"
@@ -590,7 +590,7 @@
             "attributes": {
                 "temperature": {
                     "type": "readonly float32",
-                    "unit": "\u00c2\u00b0C"
+                    "unit": "\u00b0C"
                 },
                 "config": {
                     "c_is_class": false,
@@ -616,7 +616,7 @@
             "attributes": {
                 "temperature": {
                     "type": "readonly float32",
-                    "unit": "\u00c2\u00b0C"
+                    "unit": "\u00b0C"
                 },
                 "config": {
                     "c_is_class": false,
@@ -905,7 +905,7 @@
                         },
                         "torque_constant": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m/A"
+                            "unit": "N\u00b7m/A"
                         },
                         "motor_type": "MotorType",
                         "current_lim": {
@@ -920,17 +920,17 @@
                         },
                         "torque_lim": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m",
+                            "unit": "N\u00b7m",
                             "doc": "Maximum commanded torque allowed in the torque loop."
                         },
                         "inverter_temp_limit_lower": {
                             "type": "float32",
-                            "unit": "\u00c2\u00b0C",
+                            "unit": "\u00b0C",
                             "doc": "Not implemented."
                         },
                         "inverter_temp_limit_upper": {
                             "type": "float32",
-                            "unit": "\u00c2\u00b0C",
+                            "unit": "\u00b0C",
                             "doc": "Not implemented."
                         },
                         "requested_current_range": {
@@ -1080,7 +1080,7 @@
                 },
                 "input_torque": {
                     "type": "float32",
-                    "unit": "N\u00c2\u00b7m",
+                    "unit": "N\u00b7m",
                     "doc": "In `CONTROL_MODE_TORQUE_CONTROL`, sets the desired output torque of the axis.\nIn `CONTROL_MODE_VELOCITY_CONTROL` and `CONTROL_MODE_POSITION_CONTROL`, sets the feed-forward torque of the torque controller.\nIn `INPUT_MODE_TUNING`, this acts as a DC offset for the torque sine wave.\n"
                 },
                 "pos_setpoint": {
@@ -1095,7 +1095,7 @@
                 },
                 "torque_setpoint": {
                     "type": "readonly float32",
-                    "unit": "N\u00c2\u00b7m",
+                    "unit": "N\u00b7m",
                     "doc": "The torque reference actually being used by the torque controller.  This is the same as `input_vel` in `INPUT_MODE_PASSTHROUGH`, but may vary according to `InputMode`."
                 },
                 "trajectory_done": {
@@ -1104,7 +1104,7 @@
                 },
                 "vel_integrator_torque": {
                     "type": "float32",
-                    "unit": "N\u00c2\u00b7m",
+                    "unit": "N\u00b7m",
                     "doc": "The accumulated value of the velocity loop integrator"
                 },
                 "anticogging_valid": "bool",
@@ -1142,18 +1142,18 @@
                         },
                         "vel_gain": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m / (turn/s)",
-                            "doc": "units = N\u00c2\u00b7m / (turn/s)"
+                            "unit": "N\u00b7m / (turn/s)",
+                            "doc": "units = N\u00b7m / (turn/s)"
                         },
                         "vel_integrator_gain": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m / (turn/s * s)",
-                            "doc": "units = N\u00c2\u00b7m / (turn/s * s)"
+                            "unit": "N\u00b7m / (turn/s * s)",
+                            "doc": "units = N\u00b7m / (turn/s * s)"
                         },
                         "vel_integrator_limit": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m",
-                            "doc": "Limit the integrator output (independent of proportional gain output). Set to infinity to disable. Units = N\u00c2\u00b7m"
+                            "unit": "N\u00b7m",
+                            "doc": "Limit the integrator output (independent of proportional gain output). Set to infinity to disable. Units = N\u00b7m"
                         },
                         "vel_limit": {
                             "type": "float32",
@@ -1170,7 +1170,7 @@
                         },
                         "torque_ramp_rate": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m / sec"
+                            "unit": "N\u00b7m / sec"
                         },
                         "circular_setpoints": {
                             "type": "bool"
@@ -1191,7 +1191,7 @@
                         },
                         "inertia": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m/(turn/s^2)"
+                            "unit": "N\u00b7m/(turn/s^2)"
                         },
                         "axis_to_mirror": {
                             "type": "uint8",
@@ -1268,7 +1268,7 @@
                         },
                         "torque_amplitude": {
                             "type": "float32",
-                            "unit": "N\u00c2\u00b7m"
+                            "unit": "N\u00b7m"
                         }
                     }
                 },
@@ -1280,7 +1280,7 @@
                 "electrical_power": {
                     "type": "readonly float32",
                     "unit": "Watt",
-                    "doc": "Electrical power estimate. Vdq\u00c2\u00b7Idq"
+                    "doc": "Electrical power estimate. Vdq\u00b7Idq"
                 }
             },
             "functions": {
@@ -1906,7 +1906,7 @@
                 },
                 "VEL_RAMP": {
                     "brief": "Ramps a velocity command from the current value to the target value.",
-                    "doc": "### Configuration Values:\n* `config.vel_ramp_rate` [turn/s]\n* `config.inertia` [N\u00c2\u00b7m/(turn/s^2))]\n\n### Valid inputs:\n* `input_vel`\n\n### Valid Control Modes:\n* `CONTROL_MODE_VELOCITY_CONTROL`\n"
+                    "doc": "### Configuration Values:\n* `config.vel_ramp_rate` [turn/s]\n* `config.inertia` [N\u00b7m/(turn/s^2))]\n\n### Valid inputs:\n* `input_vel`\n\n### Valid Control Modes:\n* `CONTROL_MODE_VELOCITY_CONTROL`\n"
                 },
                 "POS_FILTER": {
                     "brief": "Implements a 2nd order position tracking filter.",
