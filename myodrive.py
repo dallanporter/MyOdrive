@@ -1,248 +1,48 @@
 
-@classproperty_support
-class MyOdrive():
-    error = None
-    vbus_voltage = None
-    ibus = None
-    type = None
-    
-    _ibus_report_filter_k = None
-    
-    @classproperty
-    def ibus_report_filter_k(self, value):
-        self._ibus_report_filter_k = value
-        
-    serial_number = None
-    hw_version_major = None
-    hw_version_minor = None
-    hw_version_variant = None
-    fw_version_major = None
-    fw_version_minor = None
-    fw_version_revision = None
-    fw_version_unreleased = None
-    brake_resistor_armed = None
-    brake_resistor_saturated = None
-    brake_resistor_current = None
-    n_evt_sampling = None
-    n_evt_control_loop = None
-    task_timers_armed = None
-    task_times = None
-    system_stats = {
-        'uptime': None,
-        'min_heap_space': None,
-        'max_stack_usage_axis': None,
-        'max_stack_usage_usb': None,
-        'max_stack_usage_uart': None,
-        'max_stack_usage_can': None,
-        'max_stack_usage_startup': None,
-        'max_stack_usage_analog': None,
-        'stack_size_axis': None,
-        'stack_size_usb': None,
-        'stack_size_uart': None,
-        'stack_size_startup': None,
-        'stack_size_can': None,
-        'stack_size_analog': None,
-        'prio_axis': None,
-        'prio_usb': None,
-        'prio_uart': None,
-        'prio_startup': None,
-        'prio_can': None,
-        'prio_analog': None,
-        'usb': {                                                
-                'rx_cnt': None,
-                'tx_cnt': None,
-                'tx_overrun_cnt': None                    
-        },
-        'i2c': {                                                
-                'addr': None,
-                'addr_match_cnt': None,
-                'rx_cnt': None,
-                'error_cnt': None,
-        }
-    }
-    user_config_loaded = None
-    misconfigured = None
-    oscilloscope = None
-    can = None
-    test_property = None
-    otp_valid = None
-    
-    def __init__(self):
-        # MyOdrive constructor
-        pass
-    
-    def test_function():
-        pass
-    
-    def get_adc_voltage():
-        pass
-    
-    def save_configuration():
-        pass
-    
-    def erase_configuration():
-        pass
-    
-    def reboot(): 
-        pass
-    
-    def enter_dfu_mode(): 
-        pass
-    
-    def get_interrupt_status():
-        pass
-    
-    def get_dma_status():
-        pass
-    
-    def get_gpio_states():
-        pass
-    
-    def get_drv_fault():
-        pass
-    
-    def clear_errors():
-        pass
-    
-
-class Config():
-    enable_uart_a = None
-    enable_uart_b = None
-    enable_uart_c = None
-    uart_a_baudrate = None
-    uart_b_baudrate = None
-    uart_c_baudrate = None
-    enable_can_a = None
-    enable_i2c_a = None
-    usb_cdc_protocol = None
-    uart0_protocol = None
-    uart1_protocol = None
-    uart2_protocol = None
-    max_regen_current = None
-    brake_resistance = None
-    enable_brake_resistor = None
-    dc_bus_undervoltage_trip_level = None
-    dc_bus_overvoltage_trip_level = None
-    enable_dc_bus_overvoltage_ramp = None
-    dc_bus_overvoltage_ramp_start = None
-    dc_bus_overvoltage_ramp_end = None
-    dc_max_positive_current = None
-    dc_max_negative_current = None
-    error_gpio_pin = None
-    gpio3_analog_mapping = None
-    gpio4_analog_mapping = None
-
+import odrive_enums as odenums
 
 class Can():
-    error = None
-    config = None
+    error:odenums.CanError = None
+    config = {
+        'baud_rate': None,
+        'protocol': None
+    }
 
 
 class Endpoint():
-    endpoint = None
-    min = None
-    max = None
+    endpoint:Endpoint = None
+    min:float = None
+    max:float = None
 
 
-class Axis():
-    error = None
-    step_dir_active = None
-    last_drv_fault = None
-    steps = None
-    current_state = None
-    requested_state = None
-    is_homed = None
-    config = {
-        'startup_motor_calibration': None,
-        'startup_encoder_index_search': None,
-        'startup_encoder_offset_calibration': None,
-        'startup_closed_loop_control': None,
-        'startup_homing': None,
-        'enable_step_dir': None,
-        'step_dir_always_on': None,
-        'enable_sensorless_mode': None,
-        'watchdog_timeout':None,
-        'enable_watchdog':None,
-        'step_gpio_pin': None,
-        'dir_gpio_pin': None,
-        'calibration_lockin': {
-            'current': None,
-            'ramp_time': None,
-            'ramp_distance': None,
-            'accel': None,
-            'vel': None
-        },
-        'sensorless_ramp': None,
-        'general_lockin': None,
-        'can': None
-    }
-    motor:Motor = None
-    controller = None
-    encoder = None
-    acim_estimator = None
-    sensorless_estimator = None
-    trap_traj = None
-    min_endstop = None
-    max_endstop = None
-    mechanical_brake = None
-    task_times = None
-    thermistor_update = None
-    encoder_update = None
-    sensorless_estimator_update = None
-    endstop_update = None
-    can_heartbeat = None
-    controller_update = None
-    open_loop_controller_update = None
-    acim_estimator_update = None
-    motor_update = None
-    current_controller_update = None
-    dc_calib = None
-    current_sense = None
-    pwm_update = None
-
-    def watchdog_feed():
-        pass
+class Config():
+    enable_uart_a:bool = None
+    enable_uart_b:bool = None
+    enable_uart_c:bool = None
+    uart_a_baudrate:int = None
+    uart_b_baudrate:int = None
+    uart_c_baudrate:int = None
+    enable_can_a:bool = None
+    enable_i2c_a:bool = None
+    usb_cdc_protocol:odenums.StreamProtocolType = None
+    uart0_protocol:odenums.StreamProtocolType = None
+    uart1_protocol:odenums.StreamProtocolType = None
+    uart2_protocol:odenums.StreamProtocolType = None
+    max_regen_current:float = None
+    brake_resistance:float = None
+    enable_brake_resistor:bool = None
+    dc_bus_undervoltage_trip_level:float = None
+    dc_bus_overvoltage_trip_level:float = None
+    enable_dc_bus_overvoltage_ramp:bool = None
+    dc_bus_overvoltage_ramp_start:float = None
+    dc_bus_overvoltage_ramp_end:float = None
+    dc_max_positive_current:float = None
+    dc_max_negative_current:float = None
+    error_gpio_pin:int = None
+    gpio3_analog_mapping:Endpoint = None
+    gpio4_analog_mapping:Endpoint = None
 
 
-
-class LockinConfig():
-    current = None
-    ramp_time = None
-    ramp_distance = None
-    accel = None
-    vel = None
-    finish_distance = None
-    finish_on_vel = None
-    finish_on_distance = None
-    finish_on_enc_idx = None
-
-
-class CanConfig():
-    node_id = None
-    is_extended = None
-    heartbeat_rate_ms = None
-    encoder_rate_ms = None
-
-class OnboardThermistorCurrentLimiter():
-    temperature = None
-    config = {
-        'temp_limit_lower': None,
-        'temp_limit_upper': None,
-        'enabled': None
-    }
-
-class OffboardThermistorCurrentLimiter():
-    temperature = None
-    config = {
-        'gpio_pin': None,
-        'poly_coefficient_0': None,
-        'poly_coefficient_1': None,
-        'poly_coefficient_2': None,
-        'poly_coefficient_3': None,
-        'temp_limit_lower': None,
-        'temp_limit_upper': None,
-        'enabled': None
-    }
 
 class Motor():
     last_error_time = None
@@ -312,20 +112,6 @@ class Motor():
         'I_leak_max': None,
         'dc_calib_tau': None
     }
-
-
-class Oscilloscope():
-    size = None
-    def get_val():
-        return {
-            'in': {
-                'index': None
-                },
-            'out': {
-                'val': None
-            }
-        }
-            
 
 class AcimEstimator():
     rotor_flux = None
@@ -501,7 +287,234 @@ class TaskTimer():
     length = None
     max_length = None
 
-class ODrive3():
+
+class Axis():
+    error:odenums.AxisError = None
+    step_dir_active:bool = None
+    last_drv_fault:int = None
+    steps:int = None
+    current_state:odenums.AxisState = None
+    requested_state:odenums.AxisState = None
+    is_homed:bool = None
+    config = {
+        'startup_motor_calibration': None,
+        'startup_encoder_index_search': None,
+        'startup_encoder_offset_calibration': None,
+        'startup_closed_loop_control': None,
+        'startup_homing': None,
+        'enable_step_dir': None,
+        'step_dir_always_on': None,
+        'enable_sensorless_mode': None,
+        'watchdog_timeout':None,
+        'enable_watchdog':None,
+        'step_gpio_pin': None,
+        'dir_gpio_pin': None,
+        'calibration_lockin': {
+            'current': None,
+            'ramp_time': None,
+            'ramp_distance': None,
+            'accel': None,
+            'vel': None
+        },
+        'sensorless_ramp': None,
+        'general_lockin': None,
+        'can': None
+    }
+    motor:Motor = None
+    controller:Controller = None
+    encoder:Encoder = None
+    acim_estimator:AcimEstimator = None
+    sensorless_estimator:SensorlessEstimator = None
+    trap_traj:TrapezoidalTrajectory = None
+    min_endstop:Endstop = None
+    max_endstop:Endstop = None
+    mechanical_brake:MechanicalBrake = None
+    task_times = {
+        
+    }
+    thermistor_update = None
+    encoder_update = None
+    sensorless_estimator_update = None
+    endstop_update = None
+    can_heartbeat = None
+    controller_update = None
+    open_loop_controller_update = None
+    acim_estimator_update = None
+    motor_update = None
+    current_controller_update = None
+    dc_calib = None
+    current_sense = None
+    pwm_update = None
+
+    def watchdog_feed():
+        pass
+
+
+
+class LockinConfig():
+    current = None
+    ramp_time = None
+    ramp_distance = None
+    accel = None
+    vel = None
+    finish_distance = None
+    finish_on_vel = None
+    finish_on_distance = None
+    finish_on_enc_idx = None
+
+
+class CanConfig():
+    node_id = None
+    is_extended = None
+    heartbeat_rate_ms = None
+    encoder_rate_ms = None
+
+class OnboardThermistorCurrentLimiter():
+    temperature = None
+    config = {
+        'temp_limit_lower': None,
+        'temp_limit_upper': None,
+        'enabled': None
+    }
+
+class OffboardThermistorCurrentLimiter():
+    temperature = None
+    config = {
+        'gpio_pin': None,
+        'poly_coefficient_0': None,
+        'poly_coefficient_1': None,
+        'poly_coefficient_2': None,
+        'poly_coefficient_3': None,
+        'temp_limit_lower': None,
+        'temp_limit_upper': None,
+        'enabled': None
+    }
+
+
+
+class Oscilloscope():
+    size = None
+    def get_val():
+        return {
+            'in': {
+                'index': None
+                },
+            'out': {
+                'val': None
+            }
+        }
+            
+
+@classproperty_support
+class MyOdrive():
+    error:odenums.Error = None
+    vbus_voltage:float = None
+    ibus:float = None
+    
+    _ibus_report_filter_k:float = None
+    
+    @classproperty
+    def ibus_report_filter_k(self, value):
+        self._ibus_report_filter_k = value
+        
+    serial_number:int = None
+    hw_version_major:int = None
+    hw_version_minor:int = None
+    hw_version_variant:int = None
+    fw_version_major:int = None
+    fw_version_minor:int = None
+    fw_version_revision:int = None
+    fw_version_unreleased:int = None
+    brake_resistor_armed:bool = None
+    brake_resistor_saturated:bool = None
+    brake_resistor_current:float = None
+    n_evt_sampling:int = None
+    n_evt_control_loop:int = None
+    task_timers_armed:bool = None
+    task_times = {
+        'sampling': None,
+        'control_loop_misc':None,
+        'control_loop_checks':None,
+        'dc_calib_wait':None
+    }
+    system_stats = {
+        'uptime': None,
+        'min_heap_space': None,
+        'max_stack_usage_axis': None,
+        'max_stack_usage_usb': None,
+        'max_stack_usage_uart': None,
+        'max_stack_usage_can': None,
+        'max_stack_usage_startup': None,
+        'max_stack_usage_analog': None,
+        'stack_size_axis': None,
+        'stack_size_usb': None,
+        'stack_size_uart': None,
+        'stack_size_startup': None,
+        'stack_size_can': None,
+        'stack_size_analog': None,
+        'prio_axis': None,
+        'prio_usb': None,
+        'prio_uart': None,
+        'prio_startup': None,
+        'prio_can': None,
+        'prio_analog': None,
+        'usb': {                                                
+                'rx_cnt': None,
+                'tx_cnt': None,
+                'tx_overrun_cnt': None                    
+        },
+        'i2c': {                                                
+                'addr': None,
+                'addr_match_cnt': None,
+                'rx_cnt': None,
+                'error_cnt': None,
+        }
+    }
+    user_config_loaded:int = None
+    misconfigured:bool = None
+    oscilloscope:Oscilloscope = None
+    can:Can = None
+    test_property:int = None
+    otp_valid:bool = None
+    
+    def __init__(self):
+        # MyOdrive constructor
+        pass
+    
+    def test_function(delta:int) -> float:
+        pass
+    
+    def get_adc_voltage(gpio:int) -> float:
+        pass
+    
+    def save_configuration() -> bool:
+        pass
+    
+    def erase_configuration():
+        pass
+    
+    def reboot(): 
+        pass
+    
+    def enter_dfu_mode(): 
+        pass
+    
+    def get_interrupt_status(irqn:int) -> int:
+        pass
+    
+    def get_dma_status(stream_num:int) -> int:
+        pass
+    
+    def get_gpio_states() -> int:
+        pass
+    
+    def get_drv_fault() -> int:
+        pass
+    
+    def clear_errors():
+        pass
+    
+class ODrive3(MyOdrive):
     config = {
         'gpio1_mode': None,
         'gpio2_mode': None,
