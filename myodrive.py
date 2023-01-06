@@ -3,6 +3,10 @@ import odrive_enums as odenums
 import odrive
 import asyncio
 import json
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
+import usb
+import time
 
 class Can():
     error:odenums.CanError = None
@@ -406,18 +410,15 @@ class Oscilloscope():
                 'val': None
             }
         }
-            
-class MyOdrive():
-    
-    _odrives = {}
-    
-    def __init__(self):
+        
+class Odrive():           
+    def __init__(self, serial:int=None):
         print("Inside MyOdrive.__init__() constructor")  
         self._odrive:odrive = None # the instance of the connected odrive
         self.error:odenums.Error = None
         self.vbus_voltage:float = None
         self.ibus:float = None        
-        self.serial_number:int = None
+        self.serial_number:int = serial
         self.ibus_report_filter_k:float = None
         self.hw_version_major:int = None
         self.hw_version_minor:int = None
@@ -477,7 +478,50 @@ class MyOdrive():
         self.can:Can = None
         self.test_property:int = None
         self.otp_valid:bool = None  
+
+        # Now try to connect
+        self._odrive = odrive.find_any(serial_number=self.serial_number)
+        print("Found the odrive!")
+    def test_function(delta:int) -> float:
+            pass
+    
+    def get_adc_voltage(gpio:int) -> float:
+        pass
+    
+    def save_configuration() -> bool:
+        pass
+    
+    def erase_configuration():
+        pass
+    
+    def reboot(): 
+        pass
+    
+    def enter_dfu_mode(): 
+        pass
+    
+    def get_interrupt_status(irqn:int) -> int:
+        pass
+    
+    def get_dma_status(stream_num:int) -> int:
+        pass
+    
+    def get_gpio_states() -> int:
+        pass
+    
+    def get_drv_fault() -> int:
+        pass
+    
+    def clear_errors():
+        pass
    
+   
+class MyOdrive():
+    def __init__(cls):
+        pass
+    
+    _odrives = {}
+    
     @classmethod
     async def handleSocketMessage(cls, message):
         print("Inside the MyOdrive SocketIO message handler")
@@ -522,17 +566,39 @@ class MyOdrive():
         
     @classmethod
     async def initialize(cls):
-        asyncio.create_task(cls.detectOdrives())
+        
         while True:
             print("MyOdrive update timer tick")
             await asyncio.sleep(5)
         
+    @classmethod
+    def detectUSBDevices(cls):
+        while True:
+            odrives = usb.core.find(idVendor=0x1209, idProduct=0x0d32, find_all=True)
+            for dev in odrives:
+                try:                
+                    print(dev.serial_number)
+                    cls.addOdrive(dev.serial_number)
+                except Exception:
+                    print("Exception in USB thread.")
+            time.sleep(5)
+    
+    @classmethod
+    def addOdrive(cls, serial:int=None):
+        if serial in cls._odrives.keys():
+            print("already have this odrive: " + str(serial))
+        else:
+            odrive = Odrive(serial)            
+            print("Adding this odrive to the list.")
+            cls._odrives[serial] = odrive
+    
             
     @classmethod
     async def detectOdrives(cls):
         print("Inside MyOdrive.update()")
         while True:
             try:
+                
                 found = await odrive.find_any_async()
                 serial_number = str(found.serial_number)
                 if serial_number in cls._odrives.keys():
@@ -541,44 +607,11 @@ class MyOdrive():
                     print("We found an odrive: " + serial_number)
                     cls._odrives[serial_number] = found    
                 
-            except Exception as ex:
-                print(ex)
-            await asyncio.sleep(10)
-            
-        
+            except Exception:
+                print("Caught exception detecting odrives")
+            await asyncio.sleep(5)
+
     
-    def test_function(delta:int) -> float:
-        pass
-    
-    def get_adc_voltage(gpio:int) -> float:
-        pass
-    
-    def save_configuration() -> bool:
-        pass
-    
-    def erase_configuration():
-        pass
-    
-    def reboot(): 
-        pass
-    
-    def enter_dfu_mode(): 
-        pass
-    
-    def get_interrupt_status(irqn:int) -> int:
-        pass
-    
-    def get_dma_status(stream_num:int) -> int:
-        pass
-    
-    def get_gpio_states() -> int:
-        pass
-    
-    def get_drv_fault() -> int:
-        pass
-    
-    def clear_errors():
-        pass
     
 class ODrive3(MyOdrive):
     config = {

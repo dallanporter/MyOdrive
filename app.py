@@ -53,6 +53,8 @@ async def index(request):
 @sio.event
 async def odrive(sid, message):
     print("Received socketio odrive message ")
+    # The message should be in the form:
+    # { serial_number: 12324343, get: [], set: [] }
     result = await myodrive.MyOdrive.handleSocketMessage(message)
     await sio.emit('odrive', result)
     
@@ -81,6 +83,8 @@ if __name__ == '__main__':
     app.on_startup.append(on_startup)
     app.router.add_static('/static', 'static')
     # app.router.add_get('/', index)
+    thread = Thread(target=myodrive.MyOdrive.detectUSBDevices)
+    thread.start()
     sio.attach(app)
     web.run_app(app)
     
