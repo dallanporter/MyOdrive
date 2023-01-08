@@ -38,13 +38,25 @@ class MyOdrive {
         this.socket.on("odrive", this.onOdrive.bind(this));
     }
 
+    uninit() {
+        console.log("uninitializing MyOdrive due to socket disconnect");
+        if (this.socket) {
+            this.socket.off("list_odrives");
+            this.socket.off("odrive");
+            this.removeAllOdrives();
+        }
+
+    }
+
     onListOdrives(message) {
         console.log("Inside onListOdrives()", message);
         if (Array.isArray(message)) {
             for (let i=0; i<message.length; i++) {
                 let sn = message[i];
                 if (!this.odrives.hasOwnProperty(sn)) {
-                    this.odrives[sn] = new Odrive(sn);
+                    let od = new Odrive(sn); 
+                    od.initSocket(self.socket);
+                    this.odrives[sn] = od; 
                 }
             }
         }
@@ -53,11 +65,28 @@ class MyOdrive {
     onOdrive(message) {
         console.log("Inside onOdrive()");
     }
+
+    removeAllOdrives() {
+        console.log("MyOdrive.removeAllDrives() called.");
+        this.odrives = {};
+    }
 }
 
 class Odrive {
     constructor(serial_number) {
         this._serial_number = serial_number;
+        this._socket = null;
+    }
+
+    initSocket(socket) {
+        this._socket = socket;
+        if (socket) {
+            socket.on(this._serial_number, this.onSocketSync);
+        }
+    }
+
+    onSocketSync(message) {
+        console.log("Inside Odrive.onSocketSync()", message);
     }
 
     get serial_number() {

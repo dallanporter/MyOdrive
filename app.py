@@ -1,5 +1,4 @@
 import eventlet
-import socketio
 import myodrive
 from odrive_enums import *
 import time
@@ -24,10 +23,22 @@ import math
 # pygments, prompt-toolkit, pexpect, parso, decorator, asttokens, 
 # stack-data, matplotlib-inline, jedi, ipython, odrive
 
+# First, load the odrive-interface.json into a variable
+''''
+odrive_interface = None
+try:
+    f = open("odrive-interface.json")
+    odrive_interface = json.load(f)
+    f.close()
+except Exception:
+    print("Error loading odrive-interface.json.")
+    exit()
+'''
+
 sio = socketio.AsyncServer(async_handlers=True)
 telem_rate = 2
 command_rate = 2
-web_thread = None
+
 delay_telem = 0.5 # sec between telemetry 
 loop = None # handle to the async event loop for socketio emits
 debugging = False
@@ -52,7 +63,7 @@ async def index(request):
 
 @sio.event
 async def odrive(sid, message):
-    print("Received socketio odrive message ")
+    #print("Received socketio odrive message ")
     # The message should be in the form:
     # { serial_number: 12324343, get: [], set: [] }
     result = await myodrive.MyOdrive.handleSocketMessage(message)
@@ -60,7 +71,7 @@ async def odrive(sid, message):
     
 @sio.event
 async def list_odrives(sid, message):
-    print("Received socketio odrive list_odrives message")
+    #print("Received socketio odrive list_odrives message")
     result = await myodrive.MyOdrive.list_odrives()
     await sio.emit("list_odrives", result)
     
@@ -83,13 +94,12 @@ if __name__ == '__main__':
     app.on_startup.append(on_startup)
     app.router.add_static('/static', 'static')
     # app.router.add_get('/', index)
+    #myodrive.MyOdrive.setInterface(odrive_interface)
+    myodrive.MyOdrive.attachSocketIO(sio)
     thread = Thread(target=myodrive.MyOdrive.detectUSBDevices)
     thread.start()
     sio.attach(app)
     web.run_app(app)
     
-    #web_thread = Thread(target=webTask)
-    #web_thread.start()    
-    #asyncio.run(odrive_main(my_drive))
-    
+
     

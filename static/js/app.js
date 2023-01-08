@@ -8,7 +8,7 @@ var myodrive = new MyOdrive();
 $(() => {
     socket = io();
     console.log("Initializing the page...");
-    setTimeout(onUpdateTimerTick, update_interval);
+    
     
 
     if (socket) {        
@@ -17,21 +17,26 @@ $(() => {
             console.log("Socket connected!");
             //myodrive.init(socket);
             myodrive.init(socket);
+            onUpdateTimerTick(); // kick off the watch timer
         });
-        
-        
-    }
 
-    setInterval(foo, 4000);
+        socket.on("disconnect", () => {
+            console.log("Socket disconnected. Remove all odrives and unregester events.");
+            myodrive.uninit();
+            clearTimeout(update_timer);
+        });
+    }
 });
 
 function onUpdateTimerTick() {
     console.log("Tick.");
+    /*
     if (socket && socket.connected) {
         socket.emit("list_odrives", null);
     }
+    */
     
-    setTimeout(onUpdateTimerTick, update_interval);
+    update_timer = setTimeout(onUpdateTimerTick, update_interval);
 }
 
 async function foo() {
@@ -39,8 +44,12 @@ async function foo() {
     for (let sn in myodrive.odrives) {
         let od = myodrive.odrives[sn];
         //if (od.hasOwnProperty("serial_number")) {
-            let temp = await od.serial_number;
-            console.log("Foo got temp=" + temp);
+            //let temp = await od.serial_number;
+            od.serial_number
+                .then(() => {
+                    console.log("inside then.");
+                });
+            
         //}
     }
 }
