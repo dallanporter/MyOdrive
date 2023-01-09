@@ -22,3 +22,15 @@ body {
     font-weight: bold;
     padding: 10px;
 }
+
+li.property_row {
+    background-color: rgb(32, 32, 32);
+    display:block;
+    border:1px solid red;
+    width:100%;
+}
+
+.odrive_container {
+    width:800px;
+    border:1px solid orange;
+}

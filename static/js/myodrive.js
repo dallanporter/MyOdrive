@@ -33,9 +33,13 @@ class MyOdrive {
     }
 
     init(socket) {
+        console.log("MyOdrive.init(socket)");
         this.socket = socket;
         this.socket.on("list_odrives", this.onListOdrives.bind(this));
         this.socket.on("odrive", this.onOdrive.bind(this));
+        for (let sn in this.odrives) {
+            this.odrives[sn].initSocket(socket);
+        }
     }
 
     uninit() {
@@ -75,18 +79,44 @@ class MyOdrive {
 class Odrive {
     constructor(serial_number) {
         this._serial_number = serial_number;
+        this._odrive = null;
         this._socket = null;
+        this.element = odrive_element.clone().appendTo(".odrive_collection");
+        this.element.css("display", "inline-block");
     }
 
     initSocket(socket) {
+        console.log("Inside Odrive.initSocket(socket)");
         this._socket = socket;
         if (socket) {
-            socket.on(this._serial_number, this.onSocketSync);
+            socket.on(this._serial_number, this.onSocketSync.bind(this));
+            socket.of("/" + this._serial_number).on("telem", this.onSocketTelem.bind(this));
         }
     }
 
+    onSocketTelem(message) {
+        console.log("Got telem", message);
+    }
+
     onSocketSync(message) {
-        console.log("Inside Odrive.onSocketSync()", message);
+        if (this._odrive == null) {
+            this._odrive = message;
+        } else {
+            $.extend(this._odrive, message);
+        }
+        for (let key in this._odrive) {
+            if (this._odrive.hasOwnProperty(key)) {
+                let prop = this.element.find(".property." + key);
+                if (prop.length == 0) {
+                    // create a new one.
+                    let val = this._odrive[key];
+                    $("<li class=\"property_row\">" + key + ": <span class=\"property " + key + "\">--</span></li>")
+                        .appendTo(this.element.find(".property_list"));
+                }
+            }
+        }
+        this.element.find(".property.serial_number").text(this._serial_number);
+        this.element.find(".property.vbus_voltage").text(message.vbus_voltage);
     }
 
     get serial_number() {

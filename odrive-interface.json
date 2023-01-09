@@ -1852,7 +1852,7 @@
                 }
             }
         },
-        "ODrive.Encoder.Mode": {
+        o"ODrive.Encoder.Mode": {
             "values": {
                 "INCREMENTAL": null,
                 "HALL": null,
@@ -1873,7 +1873,7 @@
                     "value": 259,
                     "doc": "Supports RLS Orbis Encoders"
                 },
-                "SPI_ABS_MA732": {
+                "": {
                     "value": 260,
                     "doc": "MagAlpha MA732 magnetic encoder"
                 }

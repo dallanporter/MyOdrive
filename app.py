@@ -77,15 +77,17 @@ async def list_odrives(sid, message):
     
 
 @sio.event
-def connect(sid, environ):
+async def connect(sid, environ):
     print("connect ", sid)
+    result = await myodrive.MyOdrive.list_odrives()
+    await sio.emit("list_odrives", result)
 
 @sio.event
 async def chat_message(sid, data):
     print("message ", data)
 
 @sio.event
-def disconnect(sid):
+async def disconnect(sid):
     print('disconnect ', sid)
 
 

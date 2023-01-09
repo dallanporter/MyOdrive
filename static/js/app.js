@@ -4,11 +4,13 @@ var update_interval = 5000;
 var socket;
 var odrives = {};
 var myodrive = new MyOdrive();
+var odrive_element = null;
 
 $(() => {
     socket = io();
     console.log("Initializing the page...");
     
+    odrive_element = $(".odrive_container").css("display", "none");
     
 
     if (socket) {        

@@ -4,18 +4,30 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>Odrive Web UI</title>
-        <script src="/static/js/jquery-3.6.2.min.js"></script>
-        <script src="/static/js/socket.io.js"></script>
-        <script src="/static/js/createjs.min.js" ></script>
+        <script src="/static/js/vendor/jquery-3.6.2.min.js"></script>
+        <script src="/static/js/vendor/socket.io.js"></script>
+        <script src="/static/js/vendor/createjs.min.js" ></script>
+        <link rel="stylesheet" href="/static/css/foundation.css">
+        <link rel="stylesheet" href="/static/css/app.css">
+        <script src="/static/js/vendor/what-input.js"></script>
+        <script src="/static/js/vendor/foundation.js"></script>
         <script src="/static/js/myodrive.js"></script>
         <script src="/static/js/app.js"></script>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="/static/css/odrive.css">
     </head>
     <body>
         <h1>This is the Odrive configuration page for the pan tilt head.</h1>
-        
+        <div class="odrive_collection">
+            <div class="odrive_container">
+                <h3>Odrive Container</h3>
+                <ul class="property_list">
+                    <li class="property_row">Serial: <span class="property serial_number">XXX</span></li>
+                    <li class="property_row">Vbus Voltage: <span class="property vbus_voltage">XXX</span></li>
+                </ul>
+            </div>
+        </div>
         <canvas id="main_canvas" width="900" height="500"></canvas>
     </body>
 </html>
