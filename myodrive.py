@@ -744,8 +744,7 @@ class Oscilloscope(OdriveProperty):
 class Odrive(OdriveProperty):
     def __init__(self, serial:int=None, 
                  thread_update_time:float=1.0,
-                 odrive_handle=None,
-                 socket=None):
+                 odrive_handle=None):
         print("Inside Odrive constructor")
         # Now try to connect if we aren't given a valid handle
         if odrive_handle == None:
@@ -754,8 +753,7 @@ class Odrive(OdriveProperty):
         else:
             self._odrive = odrive_handle
             print("Odrive.__init__() -- passed in the odrive!")
-            
-        self._socketio = socket
+        self._is_telemetry_running = False
         self._thread_update_time = thread_update_time 
         self._telem_update_time = thread_update_time / 5       
         self._json = None
@@ -763,31 +761,10 @@ class Odrive(OdriveProperty):
         self._telemObj = None
         self._telemThreadLocked = False
         self._update()
+
         
-    async def initSocket(self, sio:socketio.AsyncServer=None):
-        self._socketio = sio
-        task = asyncio.create_task(self.socketTask())
         
-        if sio is None:
-            return
-        # The serial number is the namespace we are using
-        sio.on("connect", self.socketConnect)
-        sio.on(str(self.serial_number), self.onSocketMessage, str(self.serial_number))
-        await task 
-    async def socketConnect(self):
-        print("Odrive socket connected.")
-        
-    async def socketTask(self):
-        while True:
-            while self._telemThreadLocked is True:
-                await asyncio.sleep(0.1)
-            #self._socketio.emit(event="telem", data=self._telemObj, namespace=str(self.serial_number))
-            await self._socketio.emit(event="odrive", data=self._telemObj)
-            await asyncio.sleep(self._telem_update_time)
-    
-    async def onSocketMessage(self, message):
-        print("Odrive received socket message directly.")
-        print(message)
+
     
     # A higher resolution version of _update for a specific subset of properties
     def _telem(self):
@@ -810,6 +787,7 @@ class Odrive(OdriveProperty):
             return
         
         self._telemThreadLocked = True
+        self._telemRunning = False
         for key in out_props:
             self._telemObj[key] = getattr(self._odrive, key)
         axis0 = {}
@@ -938,11 +916,28 @@ class Odrive(OdriveProperty):
         print("Inside Odrive.sync() method.")
         
         self._obj = self._toObj()
+        '''
         try:
             self._json = json.dumps(self._obj, indent=True)
         except Exception as ex:
             print(ex)
+        '''
         #self._json = self._json.replace("Infinity", "NaN")
+        return self._obj
+        
+    async def _telemetryTask(self):
+        print("Inside Odrive._telemetryTask")
+        self._is_telemetry_running = True
+        
+        while True:
+            while self._telemThreadLocked:
+                await asyncio.sleep(0.1)
+            await MyOdrive.onTelemetry(self.serial_number, self._telemObj)
+            print("Odrive._telemetryTask tick.")
+            await asyncio.sleep(self._telem_update_time)
+            if self._is_telemetry_running is False:
+                return
+        print("Odrive._telemetryTask exiting.")
         
     def test_function(delta:int) -> float:
         pass
@@ -980,10 +975,10 @@ class Odrive(OdriveProperty):
 class Odrive4(Odrive):
     
     
-    def __init__(self, serial:int=None,odrive_handle=None,socket=None):
+    def __init__(self, serial:int=None,odrive_handle=None):
         print("Inside Odrive4 constructor")
         super().__init__(serial=serial, 
-                         odrive_handle=odrive_handle, socket=socket)
+                         odrive_handle=odrive_handle)
         self._odrive = odrive_handle
         self._update()
     
@@ -1023,9 +1018,9 @@ class Odrive3(Odrive):
     }
     
     
-    def __init__(self, serial:int=None,odrive_handle=None,socket=None):
+    def __init__(self, serial:int=None,odrive_handle=None):
         print("Inside Odrive3 constructor")
-        super().__init__(serial=serial, odrive_handle=odrive_handle,socket=socket)
+        super().__init__(serial=serial, odrive_handle=odrive_handle)
         self._odrive = odrive_handle
         self._update()                 
         
@@ -1050,6 +1045,7 @@ class MyOdrive():
     _socketio:socketio.AsyncServer = None
     _broadcast_flag = False
     _newodrives = []
+    _telemetry_tasks = {}
     
     def __init__(cls):            
         cls._threads = {}
@@ -1059,41 +1055,55 @@ class MyOdrive():
     @classmethod
     async def asyncUpdate(cls):
         while True:
-            '''
-            print("MyOdrive update timer tick")
+            #print("MyOdrive update timer tick")
+            # If a client connects before an odrive is detected,
+            # they wont know about it. We will broadcast a list of all
+            # connected odrives whenever an odrive connects or disconnects
             if cls._broadcast_flag == True:
                 for sn, odrv in cls._odrives.items():
                     try:
                         #await cls._socketio.emit(str(sn), odrv._json)
-                        await cls._socketio.emit(str(sn), odrv._obj)
+                        #await cls._socketio.emit(str(sn), odrv._obj)
+                        await cls._socketio.emit("list_odrives", list(cls._odrives.keys()))
                     except Exception as ex:
                         print("Exception sending socketio message in Myodrive thread")
-            ''' 
+                        
+            cls._broadcast_flag = False
+            
+            '''
             # watch for changes in the odrive list and update 
             # async stuff when something changes
             for sn in cls._newodrives:
                 od:Odrive = cls._odrives[sn]
-                await od.initSocket(cls._socketio)    
-            cls._newodrives.clear()
-
+            '''
+            
             await asyncio.sleep(1)
 
     @classmethod
     def attachSocketIO(cls, sio:socketio.AsyncServer=None):
+        print("MyOdrive.attachSocketIO")
         if sio != None:
             sio.on("connect", cls.connect)
+            sio.on("telem_start", cls.startTelemetry)
+            sio.on("telem_stop", cls.stopTelemetry)
+            sio.on("sync", cls.syncOdrive)
             cls._socketio = sio    
             for od in cls._odrives.values():
                 od._socketio = sio # pass a handle to sio to the od instance
+
+            print("MyDrive.attachSocketIO() finished")
+        else:
+            print("Error, sio is None")
     
     @classmethod 
     async def connect(cls, sid, environ):
-        print("Inside MyOdrive.socketio.connect()")
+        print("Inside MyOdrive.socketio.connect(). Sending list of odrives...")
         await cls._socketio.emit("list_odrives", list(cls._odrives.keys()))
+        print("Done")
     
     @classmethod
-    async def handleSocketMessage(cls, message):
-        # print("Inside the MyOdrive SocketIO message handler")
+    async def handleSocketMessage(cls, sid, message):
+        print("Inside the MyOdrive SocketIO message handler")
         result = {}
         try:
             if type(message) is str:
@@ -1119,6 +1129,50 @@ class MyOdrive():
         return result
     
     @classmethod
+    async def startTelemetry(cls, sid, serial_number):
+        print("MyOdrive.startTelemetry")
+        print(serial_number)
+        odrive = cls.getOdrive(serial_number)
+        if odrive is not None:
+            task = asyncio.create_task(odrive._telemetryTask())
+            await task
+        else:
+            print("MyOdrive.startTelemetry failed to start telemetry")
+    
+    @classmethod
+    def getOdrive(cls, serial_number) -> Odrive:
+        if serial_number in cls._odrives.keys():
+            return cls._odrives[serial_number]
+        else:
+            return None
+    
+    @classmethod
+    async def onTelemetry(cls, serial_number, telem_obj):
+        await cls._socketio.emit("telem", { serial_number: telem_obj })
+    
+    @classmethod
+    async def stopTelemetry(cls, sid, serial_number):
+        print("MyOdrive.stopTelemetry")
+        print(serial_number)
+        odrive = cls.getOdrive(serial_number)
+        if odrive is not None:
+            odrive._is_telemetry_running = False
+        
+    @classmethod
+    async def syncOdrive(cls, sid, serial_number):
+        print("MyOdrive.syncOdrive()")
+        print(serial_number)
+        try:
+            if type(serial_number) is str:
+                odrive = cls._odrives[serial_number]
+                
+                out = { serial_number: odrive._sync() }
+                await cls._socketio.emit("sync", out)
+        except Exception:
+            print("Exception caught in MyOdrive.syncOdrive")
+        
+    
+    @classmethod
     async def list_odrives(cls):
         #print("Inside static function show_odrives()")
         try:
@@ -1126,16 +1180,6 @@ class MyOdrive():
         except:
             return []
         
-    @classmethod
-    def get_odrive(cls, serialnumber:str):
-        #print("Inside get_odrive(" + serialnumber + ")")
-        # todo return a MyOdrive instance for this specific odrive
-        pass
-    
-    @classmethod
-    def fromSerialNumber(cls, serialnumber:str):
-        #print("Inside MyOdrive.fromSerialNumber()" + str)
-        pass
         
     @classmethod
     async def initialize(cls):
@@ -1178,21 +1222,17 @@ class MyOdrive():
             od = None
             if hardware_version_major == 3:
                 od = Odrive3(serial=serial,
-                             odrive_handle=odrive_handle,
-                             socket=cls._socketio)
+                             odrive_handle=odrive_handle)
                 
                 
             elif hardware_version_major == 4:
                 od = Odrive4(serial=serial,
-                            odrive_handle=odrive_handle,
-                            socket=cls._socketio)
+                            odrive_handle=odrive_handle)
                 
             else:
                 od = Odrive(serial=serial,
-                        odrive_handle=odrive_handle,
-                        socket=cls._socketio)
+                        odrive_handle=odrive_handle)
             
-            cls._newodrives.append(str(serial))
             cls._odrives[serial] = od
             thread = Thread(target=od._thread_func)
             thread.start()

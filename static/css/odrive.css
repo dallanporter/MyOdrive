@@ -1,5 +1,5 @@
 body {
-    background-color:black;
+    background-color:rgb(161, 161, 161);
     color:white;
 }
 
@@ -33,4 +33,9 @@ li.property_row {
 .odrive_container {
     width:800px;
     border:1px solid orange;
+}
+
+#plot {
+    width:800px;
+    height:400px;
 }

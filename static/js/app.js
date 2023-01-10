@@ -1,33 +1,24 @@
 
 var update_timer = null;
 var update_interval = 5000;
-var socket;
 var odrives = {};
 var myodrive = new MyOdrive();
 var odrive_element = null;
+var plot = null;
+var plot_series = {
+    name: "Bus Voltage",
+    data: []
+};
 
 $(() => {
-    socket = io();
+    $(document).foundation();
     console.log("Initializing the page...");
     
     odrive_element = $(".odrive_container").css("display", "none");
     
+    
+    initPlot();
 
-    if (socket) {        
-        
-        socket.on("connect", () => {
-            console.log("Socket connected!");
-            //myodrive.init(socket);
-            myodrive.init(socket);
-            onUpdateTimerTick(); // kick off the watch timer
-        });
-
-        socket.on("disconnect", () => {
-            console.log("Socket disconnected. Remove all odrives and unregester events.");
-            myodrive.uninit();
-            clearTimeout(update_timer);
-        });
-    }
 });
 
 function onUpdateTimerTick() {
@@ -39,6 +30,28 @@ function onUpdateTimerTick() {
     */
     
     update_timer = setTimeout(onUpdateTimerTick, update_interval);
+}
+
+function initPlot() {
+    console.log("Initializing plot.");
+    plot = Highcharts.chart("plot", {
+        chart: {
+            type: "line"
+        },
+        title: {
+            text: "Odrive plot"
+        },
+        xAxis: {
+
+        },
+        yAxis: {
+
+        },
+        plotOptions: {
+            series: {}
+        },
+        series: [plot_series]
+    });
 }
 
 async function foo() {

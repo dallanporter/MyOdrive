@@ -60,10 +60,11 @@ async def index(request):
     """Serve the client-side application."""
     with open('static/index.html') as f:
         return web.Response(text=f.read(), content_type='text/html')
+'''
 
 @sio.event
 async def odrive(sid, message):
-    #print("Received socketio odrive message ")
+    print("Received socketio odrive message ")
     # The message should be in the form:
     # { serial_number: 12324343, get: [], set: [] }
     result = await myodrive.MyOdrive.handleSocketMessage(message)
@@ -71,7 +72,7 @@ async def odrive(sid, message):
     
 @sio.event
 async def list_odrives(sid, message):
-    #print("Received socketio odrive list_odrives message")
+    print("Received socketio odrive list_odrives message")
     result = await myodrive.MyOdrive.list_odrives()
     await sio.emit("list_odrives", result)
     
@@ -89,7 +90,7 @@ async def chat_message(sid, data):
 @sio.event
 async def disconnect(sid):
     print('disconnect ', sid)
-
+'''
 
 if __name__ == '__main__':
     app = web.Application()

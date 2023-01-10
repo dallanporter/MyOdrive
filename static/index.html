@@ -8,9 +8,9 @@
         <script src="/static/js/vendor/socket.io.js"></script>
         <script src="/static/js/vendor/createjs.min.js" ></script>
         <link rel="stylesheet" href="/static/css/foundation.css">
-        <link rel="stylesheet" href="/static/css/app.css">
         <script src="/static/js/vendor/what-input.js"></script>
         <script src="/static/js/vendor/foundation.js"></script>
+        <script src="/static/js/vendor/highcharts/highcharts.js"></script>
         <script src="/static/js/myodrive.js"></script>
         <script src="/static/js/app.js"></script>
         <meta name="description" content="">
@@ -22,12 +22,14 @@
         <div class="odrive_collection">
             <div class="odrive_container">
                 <h3>Odrive Container</h3>
+                <button class="telemetry button">Start Telemetry</button>
                 <ul class="property_list">
                     <li class="property_row">Serial: <span class="property serial_number">XXX</span></li>
                     <li class="property_row">Vbus Voltage: <span class="property vbus_voltage">XXX</span></li>
                 </ul>
             </div>
         </div>
+        <div id="plot"></div>
         <canvas id="main_canvas" width="900" height="500"></canvas>
     </body>
 </html>
