@@ -10,6 +10,14 @@ class MyOdrive {
         this.socket.on("odrive", this.onOdrive.bind(this));
         this.socket.on("telem", this.onSocketTelemetry.bind(this));
         this.socket.on("sync", this.onSocketSync.bind(this));
+
+        this.event_subscribers = {};
+        this.on = (event_name, callback) => {
+            if (!this.event_subscribers.hasOwnProperty(event_name)) {
+                this.event_subscribers[event_name] = [];
+            }
+            this.event_subscribers[event_name].push(callback);
+        };
     }   
 
     init(socket) {
@@ -48,7 +56,10 @@ class MyOdrive {
         let m = this.helperGetSerialMessage(message);
         if (m) {
             let odrive = this.getOdrive(m.serial_number);
-            console.log(m.serial_number, m.payload)
+            if (odrive) {
+                odrive.syncTelemetry(m.payload);
+            }
+            //console.log(m.serial_number, m.payload);
         }
     }
 
@@ -97,17 +108,27 @@ class MyOdrive {
                     let od = new Odrive(sn, this.socket); 
                     this.odrives[sn] = od; 
                     this.socket.emit("sync", sn); // get this new odrive state
+
+                    if (this.event_subscribers.hasOwnProperty("odrive_connected")) {
+                        let subs = this.event_subscribers.odrive_connected;
+                        for (let i in subs) {
+                            if (typeof(subs[i]) == "function") {
+                                subs[i].call(this, od);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
     getOdrive(serial_number) {
-        if (this.odrives.hasOwnProperty(serial_number)) {
-            return this.odrives[serial_number];
-        } else {
-            return null;
+        for (let sn in this.odrives) {
+            if (sn == serial_number) {
+                return this.odrives[sn];
+            }
         }
+        return null;
     }
 
     onOdrive(message) {
@@ -126,7 +147,7 @@ class MyOdrive {
      * { <serial_number>: <payload> }
      * @param {Object} obj 
      */
-    helperGetSerialMessage(obj) {
+    helperGetSerialMessage(message) {
         let serial_number = null;
         let payload = null;
         try {
@@ -153,12 +174,27 @@ class Odrive {
         this._serial_number = serial_number;
         this._odrive = null;
         this._is_telem_running = false;
+
+        /* The element related stuff shouldn't be in the odrive class. TODO move it */
         this.element = odrive_element.clone().appendTo(".odrive_collection");
         this.element.css("display", "inline-block");
         this.element.find(".button.telemetry").on("click", this.onTelemetryButtonClick.bind(this));
 
+        this.telemetry = null;
+
+        this.event_subscribers = {};
+        this.on = (event_name, callback) => {
+            if (!this.event_subscribers.hasOwnProperty(event_name)) {
+                this.event_subscribers[event_name] = [];   
+            }
+            this.event_subscribers[event_name].push(callback);                
+        };
     }
 
+    /**
+     * this shouldn't be in the Odrive class
+     * TODO remove it and move it to app.js or somewhere else.
+     */
     onTelemetryButtonClick() {
         console.log("Inside onTelemetry button click");
         if (!this._is_telem_running) {
@@ -177,21 +213,23 @@ class Odrive {
         } else {
             $.extend(this._odrive, message);
         }
-        /*
-        for (let key in this._odrive) {
-            if (this._odrive.hasOwnProperty(key)) {
-                let prop = this.element.find(".property." + key);
-                if (prop.length == 0) {
-                    // create a new one.
-                    let val = this._odrive[key];
-                    $("<li class=\"property_row\">" + key + ": <span class=\"property " + key + "\">--</span></li>")
-                        .appendTo(this.element.find(".property_list"));
+        
+    }
+
+    syncTelemetry(telem) {
+        this.telemetry = telem;
+
+        this.element.find(".property.serial_number").text(this._serial_number);
+        this.element.find(".property.vbus_voltage").text(telem.vbus_voltage);
+
+        if (this.event_subscribers.hasOwnProperty("vbus_voltage")) {
+            let subs = this.event_subscribers.vbus_voltage;
+            for (let i in subs) {
+                if (typeof(subs[i]) == "function") {
+                    subs[i].call(this, telem.vbus_voltage);
                 }
             }
         }
-        */
-        this.element.find(".property.serial_number").text(this._serial_number);
-        this.element.find(".property.vbus_voltage").text(message.vbus_voltage);
     }
 
     get serial_number() {

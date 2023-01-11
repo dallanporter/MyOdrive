@@ -3,6 +3,7 @@ var update_timer = null;
 var update_interval = 5000;
 var odrives = {};
 var myodrive = new MyOdrive();
+var first_odrive = null;
 var odrive_element = null;
 var plot = null;
 var plot_series = {
@@ -13,13 +14,26 @@ var plot_series = {
 $(() => {
     $(document).foundation();
     console.log("Initializing the page...");
-    
     odrive_element = $(".odrive_container").css("display", "none");
-    
-    
     initPlot();
-
+    myodrive.on("odrive_connected", onOdriveConnected);
 });
+
+function onOdriveConnected(new_odrive) {
+    console.log("App connected odrive");
+    first_odrive = new_odrive; // todo, handle multiple someday
+    first_odrive.on("vbus_voltage", onVbusVoltage);
+}
+
+function onVbusVoltage(voltage) {
+    console.log("App got vbus_voltage!", voltage);
+    let point = [new Date().getTime(), voltage];
+    plot.series[0].addPoint(point, true);
+}
+
+function onOdriveDisconnected(serial_number) {
+    console.log("App disconnected odrive");
+}
 
 function onUpdateTimerTick() {
     console.log("Tick.");
@@ -28,7 +42,6 @@ function onUpdateTimerTick() {
         socket.emit("list_odrives", null);
     }
     */
-    
     update_timer = setTimeout(onUpdateTimerTick, update_interval);
 }
 

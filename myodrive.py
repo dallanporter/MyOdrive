@@ -742,11 +742,15 @@ class Oscilloscope(OdriveProperty):
     
         
 class Odrive(OdriveProperty):
-    def __init__(self, serial:int=None, 
+    def __init__(self, serial_number=None,
                  thread_update_time:float=1.0,
                  odrive_handle=None):
         print("Inside Odrive constructor")
         # Now try to connect if we aren't given a valid handle
+        if serial_number is None:
+            print("Error creating Odrive without serial number")
+            raise Exception("Error creating odrive")
+        self.serial_number = serial_number
         if odrive_handle == None:
             self._odrive = odrive.find_any(serial_number=self.serial_number)
             print("Odrive.__init__() -- Found the odrive!")
@@ -780,16 +784,15 @@ class Odrive(OdriveProperty):
                             'current_meas_phC']
         
         # todo fill out the data for this.
-        self._telemObj = {}
+        to = {}
         
         if self._odrive is None:
             self._telemThreadLocked = False
             return
         
         self._telemThreadLocked = True
-        self._telemRunning = False
         for key in out_props:
-            self._telemObj[key] = getattr(self._odrive, key)
+            to[key] = getattr(self._odrive, key)
         axis0 = {}
         axis1 = {}
         for key in axis_props:
@@ -811,14 +814,15 @@ class Odrive(OdriveProperty):
             motor0[key] = getattr(self._odrive.axis0.motor, key)
             motor1[key] = getattr(self._odrive.axis1.motor, key)
             
-        self._telemObj['axis0'] = axis0
-        self._telemObj['axis1'] = axis1
-        self._telemObj['controller0'] = controller0
-        self._telemObj['controller1'] = controller1
-        self._telemObj['encoder0'] = encoder0
-        self._telemObj['encoder1'] = encoder1
-        self._telemObj['motor0'] = motor0
-        self._telemObj['motor1'] = motor1
+        to['axis0'] = axis0
+        to['axis1'] = axis1
+        to['controller0'] = controller0
+        to['controller1'] = controller1
+        to['encoder0'] = encoder0
+        to['encoder1'] = encoder1
+        to['motor0'] = motor0
+        to['motor1'] = motor1
+        self._telemObj = to
         self._telemThreadLocked = False
         
     def _update(self):
@@ -830,7 +834,7 @@ class Odrive(OdriveProperty):
         self.error:int = odrive_handle.error
         self.vbus_voltage:float = odrive_handle.vbus_voltage
         self.ibus:float = odrive_handle.ibus
-        self.serial_number:int = odrive_handle.serial_number
+        
         self.ibus_report_filter_k:float = odrive_handle.ibus_report_filter_k
         self.hw_version_major:int = odrive_handle.hw_version_major
         self.hw_version_minor:int = odrive_handle.hw_version_minor
@@ -915,7 +919,7 @@ class Odrive(OdriveProperty):
     def _sync(self):
         print("Inside Odrive.sync() method.")
         
-        self._obj = self._toObj()
+        self._obj = self._toObj() # This fixes Infinity/NaN issues
         '''
         try:
             self._json = json.dumps(self._obj, indent=True)
@@ -926,9 +930,7 @@ class Odrive(OdriveProperty):
         return self._obj
         
     async def _telemetryTask(self):
-        print("Inside Odrive._telemetryTask")
-        self._is_telemetry_running = True
-        
+        print("Inside Odrive._telemetryTask") 
         while True:
             while self._telemThreadLocked:
                 await asyncio.sleep(0.1)
@@ -975,9 +977,9 @@ class Odrive(OdriveProperty):
 class Odrive4(Odrive):
     
     
-    def __init__(self, serial:int=None,odrive_handle=None):
+    def __init__(self, serial_number=None,odrive_handle=None):
         print("Inside Odrive4 constructor")
-        super().__init__(serial=serial, 
+        super().__init__(serial_number=serial_number, 
                          odrive_handle=odrive_handle)
         self._odrive = odrive_handle
         self._update()
@@ -1018,10 +1020,11 @@ class Odrive3(Odrive):
     }
     
     
-    def __init__(self, serial:int=None,odrive_handle=None):
+    def __init__(self, serial_number=None,odrive_handle=None):
         print("Inside Odrive3 constructor")
-        super().__init__(serial=serial, odrive_handle=odrive_handle)
+        super().__init__(serial_number=serial_number, odrive_handle=odrive_handle)
         self._odrive = odrive_handle
+        self.serial_number = serial_number
         self._update()                 
         
     def _update(self):
@@ -1134,6 +1137,7 @@ class MyOdrive():
         print(serial_number)
         odrive = cls.getOdrive(serial_number)
         if odrive is not None:
+            odrive._is_telemetry_running = True
             task = asyncio.create_task(odrive._telemetryTask())
             await task
         else:
@@ -1148,7 +1152,7 @@ class MyOdrive():
     
     @classmethod
     async def onTelemetry(cls, serial_number, telem_obj):
-        await cls._socketio.emit("telem", { serial_number: telem_obj })
+        await cls._socketio.emit("telem", { str(serial_number): telem_obj })
     
     @classmethod
     async def stopTelemetry(cls, sid, serial_number):
@@ -1221,16 +1225,16 @@ class MyOdrive():
             print("Newly detected Odrive hardware version major is: " + str(hardware_version_major))
             od = None
             if hardware_version_major == 3:
-                od = Odrive3(serial=serial,
+                od = Odrive3(serial_number=serial,
                              odrive_handle=odrive_handle)
                 
                 
             elif hardware_version_major == 4:
-                od = Odrive4(serial=serial,
+                od = Odrive4(serial_number=serial,
                             odrive_handle=odrive_handle)
                 
             else:
-                od = Odrive(serial=serial,
+                od = Odrive(serial_number=serial,
                         odrive_handle=odrive_handle)
             
             cls._odrives[serial] = od
