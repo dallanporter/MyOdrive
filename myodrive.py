@@ -785,7 +785,7 @@ class Odrive(OdriveProperty):
         
         # todo fill out the data for this.
         to = {}
-        
+        to['timestamp'] = time.time()
         if self._odrive is None:
             self._telemThreadLocked = False
             return
@@ -920,12 +920,12 @@ class Odrive(OdriveProperty):
         print("Inside Odrive.sync() method.")
         
         self._obj = self._toObj() # This fixes Infinity/NaN issues
-        '''
+        
         try:
             self._json = json.dumps(self._obj, indent=True)
         except Exception as ex:
             print(ex)
-        '''
+        
         #self._json = self._json.replace("Infinity", "NaN")
         return self._obj
         
@@ -1090,6 +1090,8 @@ class MyOdrive():
             sio.on("telem_start", cls.startTelemetry)
             sio.on("telem_stop", cls.stopTelemetry)
             sio.on("sync", cls.syncOdrive)
+            sio.on("call", cls.remoteCall) # a function for an odrive being called remotely
+            sio.on("set", cls.remotePropertySet) # a property is being set remotely
             cls._socketio = sio    
             for od in cls._odrives.values():
                 od._socketio = sio # pass a handle to sio to the od instance
@@ -1097,6 +1099,23 @@ class MyOdrive():
             print("MyDrive.attachSocketIO() finished")
         else:
             print("Error, sio is None")
+    
+    @classmethod
+    async def remoteCall(cls, sid, message):
+        """A function for an odrive being called remotely. The message
+        will contain the odrive serial number, the path to the function
+        that should be called, and the value to pass to the function."""
+        print("Inside MyOdrive.remoteFunctionCall()")
+        print(message)
+    
+    @classmethod
+    async def remotePropertySet(cls, sid, message):
+        """A property is being set remotely. The message will contain
+        the serial number for the odrive, the path to the property, and
+        the value to set that property to.
+        """
+        print("Inside MyOdrive.remotePropertySet()")
+        print(message)
     
     @classmethod 
     async def connect(cls, sid, environ):

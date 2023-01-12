@@ -1852,7 +1852,7 @@
                 }
             }
         },
-        o"ODrive.Encoder.Mode": {
+        "ODrive.Encoder.Mode": {
             "values": {
                 "INCREMENTAL": null,
                 "HALL": null,
