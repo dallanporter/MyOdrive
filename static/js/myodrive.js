@@ -108,6 +108,10 @@ class MyOdrive {
         }
     }
 
+    emit(event_name, payload) {
+        this.socket.emit(event_name, payload);
+    }
+
     setRemoteProperty(serial_number, property_name, value) {
         console.log("MyOdrive.setRemoteProperty()");
         if (this.socket) {
@@ -175,7 +179,7 @@ class MyOdrive {
                 let sn = message[i];
                 if (!this.odrives.hasOwnProperty(sn)) {
                     console.log("MyOdrive creating new Odrive(" + sn + ")");
-                    let od = new Odrive(sn, this.socket); 
+                    let od = new Odrive(sn); 
                     this.odrives[sn] = od; 
                     this.socket.emit("sync", sn); // get this new odrive state
 
@@ -233,7 +237,7 @@ class MyOdrive {
 }
 
 class Odrive {
-    constructor(serial_number, socket) {
+    constructor(serial_number) {
         this._serial_number = serial_number;
         this._odrive = null;
         this._is_telem_running = false;
@@ -266,7 +270,7 @@ class Odrive {
         } else {
             $.extend(this._odrive, message);
         }
-        
+        this.broadcastEvent("synced", this._odrive);
     }
 
     broadcastEvent(name, value) {
@@ -278,6 +282,11 @@ class Odrive {
                 }
             }
         }
+    }
+
+    sync() {
+        console.log("odrive.sync() called");
+        myodrive.emit("sync", this._serial_number);
     }
 
     syncTelemetry(telem) {
@@ -313,49 +322,59 @@ class Odrive {
     // Sync functions to the odrive remote hardware.
     // Calls the remote test_function on the odrive and
     // returns a promise.
-    test_function() {
+    test_function(delta) {
         return myodrive.callRemoteFunction(this._serial_number,
-            "test_function", []);
+            "test_function", delta);
     }
 
-    get_adc_voltage() {
-
+    get_adc_voltage(gpio) {
+        return myodrive.callRemoteFunction(this._serial_number,
+            "get_adc_voltage", gpio);
     }
 
     save_configuration() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "save_configuration", null);
     }
 
     erase_configuration() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "erase_configuration", null);
     }
 
     reboot() {
-    
+        return myodrive.callRemoteFunction(this._serial_number,
+            "reboot", null);
     }
 
     enter_dfu_mode() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "enter_dfu_mode", args);
     }
 
-    get_interrupt_status() {
-
+    get_interrupt_status(irqn) {
+        return myodrive.callRemoteFunction(this._serial_number,
+            "get_interrupt_status", irqn);
     }
 
-    get_dma_status() {
-
+    get_dma_status(stream_num) {
+        return myodrive.callRemoteFunction(this._serial_number,
+            "get_dma_status", stream_num);
     }
 
     get_gpio_states() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "get_gpio_states", null);
     }
 
     get_drv_fault() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "get_drv_fault", null);
     }
 
     clear_errors() {
-
+        return myodrive.callRemoteFunction(this._serial_number,
+            "clear_errors", null);
     }
 
     /*

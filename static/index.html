@@ -7,7 +7,6 @@
         <script src="/static/js/vendor/jquery-3.6.2.min.js"></script>
         <script src="/static/js/vendor/socket.io.js"></script>
         <script src="/static/js/vendor/createjs.min.js" ></script>
-        <link rel="stylesheet" href="/static/css/foundation.css">
         <script src="/static/js/vendor/what-input.js"></script>
         <script src="/static/js/vendor/foundation.js"></script>
         <script src="/static/js/vendor/highcharts/highcharts.js"></script>
@@ -15,21 +14,81 @@
         <script src="/static/js/app.js"></script>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/static/css/foundation.css">
         <link rel="stylesheet" href="/static/css/odrive.css">
     </head>
     <body>
         <h1>This is the Odrive configuration page for the pan tilt head.</h1>
         <div class="odrive_collection">
-            <div class="odrive_container">
-                <h3>Odrive Container</h3>
-                <button class="telemetry button">Start Telemetry</button>
-                <ul class="property_list">
-                    <li class="property_row">Serial: <span class="property serial_number">XXX</span></li>
-                    <li class="property_row">Vbus Voltage: <span class="property vbus_voltage">XXX</span></li>
-                </ul>
+            <div class="grid-x">
+                <div class="cell shrink">                    
+                    <div class="cell">
+                        <div id="plot"></div>
+                    </div>
+                    <div class="cell auto">
+                        <div class="grid-x">
+                            <div class="axis0 cell medium-6">
+                                <h5>Axis 0</h5>
+                                <div class="button-group">
+                                    <button class="calibrate button" disabled>Calibrate</button>
+                                    <button class="closed_loop button" disabled>Closed Loop</button>
+                                    <button class="idle button" disabled>Idle</button>
+                                </div>
+                                <div class="axis0 tree">
+                                    <ul class="accordion" data-accordion data-allow-all-closed="true">
+
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="axis1 cell medium-6">
+                                <h5>Axis 1</h5>
+                                <div class="button-group">
+                                    <button class="calibrate button" disabled>Calibrate</button>
+                                    <button class="closed_loop button" disabled>Closed Loop</button>
+                                    <button class="idle button" disabled>Idle</button>
+                                </div>
+                                <div class="axis1 tree">
+                                    <ul class="accordion" data-accordion data-allow-all-closed="true">
+                                        <li class="accordion-item" data-accordion-item>
+            
+                                            <a href="#" class="accordion-title">Properties</a>
+                                            <div class="accordion-content" data-tab-content>
+                                            <ul></ul>
+                                            </div>
+                                        </li>
+                                        <!-- Begin -->
+
+                                    
+
+                                        <!-- End -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cell auto">
+                    <div class="cell">
+                        <div class="button-group">
+                            <button class="telemetry button" disabled>Start Telemetry</button>
+                            <button class="sync button" disabled>Sync Odrive</button>
+                        </div>
+                    </div>
+                    <div class="cell">
+                        <ul id="root_properties" class="accordion" data-accordion data-allow-all-closed="true">                            
+                            <li class="accordion-item" data-accordion-item>
+                                <a href="#" class="accordion-title">Base Properties</a>
+                                <div class="accordion-content" data-tab-content>
+                                    <ul class="base_properties"></ul>
+                                    
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-        <div id="plot"></div>
+        
         <canvas id="main_canvas" width="900" height="500"></canvas>
     </body>
 </html>

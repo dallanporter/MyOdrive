@@ -99,8 +99,7 @@ if __name__ == '__main__':
     # app.router.add_get('/', index)
     #myodrive.MyOdrive.setInterface(odrive_interface)
     myodrive.MyOdrive.attachSocketIO(sio)
-    thread = Thread(target=myodrive.MyOdrive.detectUSBDevices)
-    thread.start()
+    myodrive.MyOdrive.initializeThreads()
     sio.attach(app)
     web.run_app(app)
     

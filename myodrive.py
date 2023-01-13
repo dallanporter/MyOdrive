@@ -763,6 +763,7 @@ class Odrive(OdriveProperty):
         self._json = None
         self._obj = None
         self._telemObj = None
+        self._reboot = False
         self._telemThreadLocked = False
         self._update()
 
@@ -772,6 +773,8 @@ class Odrive(OdriveProperty):
     
     # A higher resolution version of _update for a specific subset of properties
     def _telem(self):
+        if self._reboot:
+            return
         out_props = ['vbus_voltage','error','ibus','brake_resistor_current']
         axis_props = ['error','current_state','requested_state']
         axis_controller_props = ['error','vel_setpoint','pos_setpoint','torque_setpoint',
@@ -791,41 +794,48 @@ class Odrive(OdriveProperty):
             return
         
         self._telemThreadLocked = True
-        for key in out_props:
-            to[key] = getattr(self._odrive, key)
-        axis0 = {}
-        axis1 = {}
-        for key in axis_props:
-            axis0[key] = getattr(self._odrive.axis0, key)
-            axis1[key] = getattr(self._odrive.axis1, key)
-        controller0 = {}
-        controller1 = {}
-        for key in axis_controller_props:
-            controller0[key] = getattr(self._odrive.axis0.controller, key)
-            controller1[key] = getattr(self._odrive.axis1.controller, key)
-        encoder0 = {}
-        encoder1 = {}
-        for key in axis_encoder_props:
-            encoder0[key] = getattr(self._odrive.axis0.encoder, key)
-            encoder1[key] = getattr(self._odrive.axis1.encoder, key)
-        motor0 = {}
-        motor1 = {}
-        for key in axis_motor_props:
-            motor0[key] = getattr(self._odrive.axis0.motor, key)
-            motor1[key] = getattr(self._odrive.axis1.motor, key)
-            
-        to['axis0'] = axis0
-        to['axis1'] = axis1
-        to['controller0'] = controller0
-        to['controller1'] = controller1
-        to['encoder0'] = encoder0
-        to['encoder1'] = encoder1
-        to['motor0'] = motor0
-        to['motor1'] = motor1
-        self._telemObj = to
-        self._telemThreadLocked = False
+        try:
+            for key in out_props:
+                to[key] = getattr(self._odrive, key)
+            axis0 = {}
+            axis1 = {}
+            for key in axis_props:
+                axis0[key] = getattr(self._odrive.axis0, key)
+                axis1[key] = getattr(self._odrive.axis1, key)
+            controller0 = {}
+            controller1 = {}
+            for key in axis_controller_props:
+                controller0[key] = getattr(self._odrive.axis0.controller, key)
+                controller1[key] = getattr(self._odrive.axis1.controller, key)
+            encoder0 = {}
+            encoder1 = {}
+            for key in axis_encoder_props:
+                encoder0[key] = getattr(self._odrive.axis0.encoder, key)
+                encoder1[key] = getattr(self._odrive.axis1.encoder, key)
+            motor0 = {}
+            motor1 = {}
+            for key in axis_motor_props:
+                motor0[key] = getattr(self._odrive.axis0.motor, key)
+                motor1[key] = getattr(self._odrive.axis1.motor, key)
+                
+            to['axis0'] = axis0
+            to['axis1'] = axis1
+            to['controller0'] = controller0
+            to['controller1'] = controller1
+            to['encoder0'] = encoder0
+            to['encoder1'] = encoder1
+            to['motor0'] = motor0
+            to['motor1'] = motor1
+            self._telemObj = to
+        except Exception as e:
+            print("Error in Odrive._telem() {}".format(e))
+        finally:
+            self._telemThreadLocked = False    
+        
         
     def _update(self):
+        if self._reboot:
+            return
         odrive_handle = self._odrive
         if odrive_handle == None:
             return
@@ -900,25 +910,27 @@ class Odrive(OdriveProperty):
     
     def _thread_func(self):
         #print("Inside odrive.thread_func");
-        run_flag = True
         count = 0
-        while run_flag:
-            try:
-                if count >= 5:
-                    self._update()
-                    self._sync()
-                self._telem()
-                #print("Odrive[" + self.serial_number + "] vbus_voltage =  " + str(self.vbus_voltage) + " volts.")
-            except Exception as ex:
-                print("Caught odrive exception in the thread function")
-                print(ex)
-                #run_flag = False
+        while True:
+            if self._reboot == False:
+                try:
+                    if count >= 5:
+                        self._update()
+                        self._sync()
+                    self._telem()
+                    #print("Odrive[" + self.serial_number + "] vbus_voltage =  " + str(self.vbus_voltage) + " volts.")
+                except Exception as ex:
+                    print("Caught odrive exception in the thread function")
+                    print(ex)
+                    #run_flag = False
 
             time.sleep(self._thread_update_time / 5)
+        
+        # reset the reboot flag here
     
     def _sync(self):
         print("Inside Odrive.sync() method.")
-        
+        self._update()
         self._obj = self._toObj() # This fixes Infinity/NaN issues
         
         try:
@@ -941,38 +953,53 @@ class Odrive(OdriveProperty):
                 return
         print("Odrive._telemetryTask exiting.")
         
-    def test_function(delta:int) -> float:
-        pass
+    def test_function(self, delta:int) -> float:
+        print("Inside Odrive.test_function")
+        return self._odrive.test_function(delta)
+        
     
-    def get_adc_voltage(gpio:int) -> float:
-        pass
+    def get_adc_voltage(self, gpio:int) -> float:
+        return self._odrive.get_adc_voltage(gpio)
+
     
-    def save_configuration() -> bool:
-        pass
+    def save_configuration(self) -> bool:
+        return self._odrive.save_configuration()
+
     
-    def erase_configuration():
-        pass
+    def erase_configuration(self):
+        return self._odrive.erase_configuration()
+
     
-    def reboot(): 
-        pass
+    def reboot(self): 
+        # we need to stop the running thread before rebooting.
+        self._reboot = True
+        time.sleep(1)
+        return self._odrive.reboot()
+
     
-    def enter_dfu_mode(): 
-        pass
+    def enter_dfu_mode(self): 
+        return self._odrive.enter_dfu_mode()
+
     
-    def get_interrupt_status(irqn:int) -> int:
-        pass
+    def get_interrupt_status(self, irqn:int) -> int:
+        return self._odrive.get_interrupt_status(irqn)
+
     
-    def get_dma_status(stream_num:int) -> int:
-        pass
+    def get_dma_status(self, stream_num:int) -> int:
+        return self._odrive.get_dma_status(stream_num)
+
     
-    def get_gpio_states() -> int:
-        pass
+    def get_gpio_states(self) -> int:
+        return self._odrive.get_gpio_states()
+
     
-    def get_drv_fault() -> int:
-        pass
+    def get_drv_fault(self) -> int:
+        return self._odrive.get_drv_fault()
+
     
-    def clear_errors():
-        pass
+    def clear_errors(self):
+        return self._odrive.clear_errors()
+        
    
 class Odrive4(Odrive):
     
@@ -1049,11 +1076,23 @@ class MyOdrive():
     _broadcast_flag = False
     _newodrives = []
     _telemetry_tasks = {}
+    _remoteFunctionRequests = []
+    _remotePropertyRequests = []
+    _socketSendQueue = []
+
     
-    def __init__(cls):            
+    def __init__(cls):        
+        print("Inside MyOdrive constructor")
         cls._threads = {}
         cls._odrives = {}
         cls._socketio = None
+    
+    @classmethod
+    def initializeThreads(cls):
+        cls._usbThread = Thread(target=cls.detectUSBDevices)
+        cls._usbThread.start()
+        cls._remoteQueueThread = Thread(target=cls.processRemoteRequests)
+        cls._remoteQueueThread.start()
         
     @classmethod
     async def asyncUpdate(cls):
@@ -1070,18 +1109,24 @@ class MyOdrive():
                         await cls._socketio.emit("list_odrives", list(cls._odrives.keys()))
                     except Exception as ex:
                         print("Exception sending socketio message in Myodrive thread")
+                        print(ex)
                         
             cls._broadcast_flag = False
             
-            '''
-            # watch for changes in the odrive list and update 
-            # async stuff when something changes
-            for sn in cls._newodrives:
-                od:Odrive = cls._odrives[sn]
-            '''
+            # process any socket send requests in _socketSendQueue
+            while len(cls._socketSendQueue) > 0:
+                req = cls._socketSendQueue.pop(0)
+                try:
+                    print("Sending socketio message in Myodrive thread: " + req['request_id'] + " " + str(req['result']))
+                    await cls._socketio.emit(req['request_id'], { 'result': req['result'] })
+                except Exception as ex:
+                    print("Exception sending socketio message in Myodrive thread")
+                    print(str(ex))
+            
             
             await asyncio.sleep(1)
 
+    
     @classmethod
     def attachSocketIO(cls, sio:socketio.AsyncServer=None):
         print("MyOdrive.attachSocketIO")
@@ -1103,10 +1148,64 @@ class MyOdrive():
     @classmethod
     async def remoteCall(cls, sid, message):
         """A function for an odrive being called remotely. The message
-        will contain the odrive serial number, the path to the function
+        will contain the odrive serial number, a unique identified
+        that this script must return when the call completes, 
+        the path to the function
         that should be called, and the value to pass to the function."""
-        print("Inside MyOdrive.remoteFunctionCall()")
+        print("Inside MyOdrive.remoteCall()")
         print(message)
+        try:
+            request_id = message["request_id"]
+            serial_number = message["serial_number"]
+            # see if we have the odrive in our list that matches
+            # the serial number.
+            odrive = cls._odrives.get(serial_number)
+            if odrive is None:
+                # send a message back to the client that the odrive doesn't exist
+                cls._socketio.emit(request_id, 
+                                    {"error":"odrive not found"})
+                return
+            print("Adding remote function call to the queue.")
+            cls._remoteFunctionRequests.append(message)
+        except Exception as ex:
+            print("Exception in MyOdrive.remoteFunctionCall()")
+            print(str(ex));
+       
+    @classmethod
+    def processRemoteRequests(cls):
+        """This method is called from the main thread. It will process
+        any remote requests that have been queued up by the socketio
+        message handler."""
+        print("Inside MyOdrive.processRemoteRequests()")
+        while True:
+            try:
+                while len(cls._remoteFunctionRequests) > 0:
+                    message = cls._remoteFunctionRequests.pop(0)
+                    print("Processing remote function call in thread")
+                    request_id = message["request_id"]
+                    serial_number = message["serial_number"]
+                    function_name = message["function_name"]
+                    arguments = message["args"]
+                    tree = function_name.split(".")
+                    odrive = cls._odrives.get(serial_number)
+                    property = odrive
+                    for t in tree:
+                        print(t)
+                        property = getattr(property, t)
+                    if callable(property):
+                        print("Calling function " + function_name)
+                        result = None
+                        if arguments is None:
+                            result = property()
+                        else:
+                            result = property(arguments)
+                        msg = {"request_id":request_id, "result":result}
+                        cls._socketSendQueue.append(msg)                                        
+            except Exception as ex:
+                print("Exception in MyOdrive.processRemoteRequests()")
+                print(str(ex))
+            
+            time.sleep(0.5)
     
     @classmethod
     async def remotePropertySet(cls, sid, message):
@@ -1235,7 +1334,16 @@ class MyOdrive():
     @classmethod
     def addOdrive(cls, serial:int=None):
         if serial in cls._odrives.keys():
-            #print("already have this odrive: " + str(serial))
+            #print("already have this odrive: " + str(serial) + ". Probably a reboot.")
+            od = cls._odrives[serial];
+            if od._reboot == True:
+                print("resetting the reboot flag for an existing odrive.")
+                # reset the reboot flag.
+                odrive_handle = odrive.find_any(serial_number=serial)
+                # replace the odrive handle in the odrive object
+                od._odrive = odrive_handle
+                od._reboot = False
+                cls._broadcast_flag = True
             pass
         else:
             
