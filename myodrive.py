@@ -765,6 +765,7 @@ class Odrive(OdriveProperty):
         self._telemObj = None
         self._reboot = False
         self._telemThreadLocked = False
+        self._reference = self._odrive # at some point I need to fix this.
         self._update()
 
         
@@ -1162,7 +1163,7 @@ class MyOdrive():
             odrive = cls._odrives.get(serial_number)
             if odrive is None:
                 # send a message back to the client that the odrive doesn't exist
-                cls._socketio.emit(request_id, 
+                await cls._socketio.emit(request_id, 
                                     {"error":"odrive not found"})
                 return
             print("Adding remote function call to the queue.")
@@ -1215,6 +1216,36 @@ class MyOdrive():
         """
         print("Inside MyOdrive.remotePropertySet()")
         print(message)
+        request_id = message["request_id"]
+        serial_number = message["serial_number"]
+        new_property = message["property_name"]
+        value = message["value"]
+        # see if we have the odrive in our list that matches
+        # the serial number.
+        try:
+            odrive = cls._odrives.get(serial_number)
+            if odrive is None:
+                # send a message back to the client that the odrive doesn't exist
+                await cls._socketio.emit(request_id, 
+                                    {"error":"odrive not found"})
+                return
+            tree = new_property.split(".")
+            odrive = cls._odrives.get(serial_number)
+            property = odrive
+            for t in tree:
+                print(t)
+                p= getattr(property, t)
+                if type(p) is OdriveProperty:
+                    property = p
+                
+                print("got property " + t)
+                
+            # set it here
+            setattr(property._reference, t, value)
+            await cls._socketio.emit(request_id, {"result":"foobar"})
+        except Exception as ex:
+            print(ex)
+            await cls._socketio.emit(request_id, {"error":str(ex)})
     
     @classmethod 
     async def connect(cls, sid, environ):

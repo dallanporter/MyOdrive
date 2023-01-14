@@ -31,10 +31,10 @@ function onOdriveConnected(new_odrive) {
     console.log("App connected odrive");
     first_odrive = new_odrive; // todo, handle multiple someday
     //first_odrive.on("vbus_voltage", onVbusVoltage);
-    first_odrive.on("encoder0.pos_circular", (pos) => {
+    first_odrive.on("encoder0.shadow_count", (pos) => {
         plot.series[0].addPoint([new Date().getTime(), pos], true);
     });
-    first_odrive.on("encoder1.pos_circular", (pos) => {
+    first_odrive.on("encoder1.shadow_count", (pos) => {
         plot.series[1].addPoint([new Date().getTime(), pos], true);
     });
     first_odrive.on("vbus_voltage", onVbusVoltage);
@@ -121,23 +121,24 @@ function onUpdateTimerTick() {
     update_timer = setTimeout(onUpdateTimerTick, update_interval);
 }
 
-function makeAccordion(obj) {
-    let html = `<ul class="accordion" data-accordion data-allow-all-closed="true">`;
+function makeAccordion(obj, depth, parent, axis_name) {
+    let html = `<ul class="depth_${depth}">`;
     for (let property in obj) {
         if (obj.hasOwnProperty(property)) {
             if (typeof(obj[property]) == "object") {
-                html += `<li class="accordion-item" data-accordion-item>
-                <a href="#" class="accordion-title">${addslashes(property)}</a>
-                <div class="accordion-content" data-tab-content>` +                          
-                            makeAccordion(obj[property]) +
+                html += `<li class="item" >
+                <i class="fi-plus"></i>
+                <a href="#" class="title" data-content="${axis_name}-${parent}-${property}">${property}</a>
+                <div class="foo" id="${axis_name}-${parent}-${property}" >` +                          
+                            makeAccordion(obj[property], depth + 1, parent + "-" + property, axis_name) +
                             `</div>
                         </li>`;
             } else {
-                html += `<li class="accordion-item" data-accordion-item>
-                <a href="#" class="accordion-title">${addslashes(property)}</a>
-                <div class="accordion-content" data-tab-content>` +
-                            addslashes(property) + ":" + addslashes(obj[property]) +
-                            `</div>
+                html += `<li class="item" >
+                
+                <div id="${axis_name}-${parent}-${property}" >
+                <label>${property}:</label> <span class="${axis_name} ${parent} ${property} value">${obj[property]}</span>
+                            </div>
                         </li>`;
             }
         }
@@ -146,24 +147,21 @@ function makeAccordion(obj) {
     return html;
 }
 
-function addslashes( str ) {
-    return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
-}
-
-function makeAxis(axis) {
+function makeAxis(axis, axis_name) {
     let html = "";
     for (let property in axis) {
         if (axis.hasOwnProperty(property)) {
             if (typeof(axis[property]) == "object") {
-                html += `<li class="accordion-item" data-accordion-item>
-                <a href="#" class="accordion-title">${addslashes(property)}</a>
-                <div class="accordion-content" data-tab-content>
-                            ${makeAccordion(addslashes(axis[property]))}
+                html += `<li class="item" >
+                <i class="fi-plus"></i>
+                <a href="#" class="title" data-content="${axis_name}-${property}">${property}</a>
+                <div class="foo" id="${axis_name}-${property}" >
+                            ${makeAccordion(axis[property], 0, property, axis_name)}
                             </div>
                         </li>`;
             } else {
-                base_properties += `<li>
-                ${addslashes(property)}: ${addslashes(axis[property])}                
+                html += `<li>
+                <label>${property}:</label> <span class="${axis_name} ${property} value">${axis[property]}</span>
                 </li>`;
             }
         }
@@ -172,37 +170,47 @@ function makeAxis(axis) {
 }
 
 function onOdriveSynced(odrive_json) {
-  //return;
-    let count = 0;
+
     for (let property in odrive_json) {
         if (odrive_json.hasOwnProperty(property)) {
             if (property == "axis0" || property == "axis1") {
-                /*
+                
                 let axis = odrive_json[property];
-                let axis_html = makeAxis(axis);
-                $("." + property + ".tree .accordion").html(axis_html);
-                */
+                let axis_html = makeAxis(axis, property);
+                $("." + property + " .tree").html(axis_html);
+                
             } else if (typeof(odrive_json[property]) == "object") {
                 
-                let html = `<li class="accordion-item" data-accordion-item>
-                            <a href="#" class="accordion-title">${addslashes(property)}</a>
-                            <div class="accordion-content" data-tab-content>
-                            ${makeAccordion(odrive_json[property])}
+                let html = `<li class="item" >
+                    <i class="fi-plus"></i>
+                    <a href="#" class="title" data-content="${property}">${property}</a>
+                            <div class="foo" id="${property}" >
+                            ${makeAccordion(odrive_json[property], 0, property)}
                             </div>
                         </li>`;
                 //$(html).appendTo("#root_properties");
-                //$("#root_properties").append(html);
-                if (count++ >= 0) {
-                    break;
-                }
+                $("#root_properties").append(html);
+                
             } else {
                 let html = `<li>
-                ${property}: ${odrive_json[property]}                
+                <label>${property}:</label> ${odrive_json[property]}                
                 </li>`;
-                //$(html).appendTo("ul.base_properties");
+                $(html).appendTo("ul.base_properties");
             }
         }
     }
+    $(".foo").toggle();
+
+    // register click handlers to the accordion
+    $("li.item a.title").click(function(event) {
+        console.log("foo");
+        let depth = $(this).data("depth");
+        let c = "#" + $(this).data("content");
+        console.log("CSS Class: " + c);
+        //$(c).removeClass("hide");
+        $(c).toggle();
+        event.preventDefault();
+    });
 }
 
 /*
@@ -286,7 +294,7 @@ function initPlot() {
             title: {
                 text: "Counts"
             },
-            max: 1,
+            max: 10000,
             min: 0,
             opposite: true,
         },{

@@ -304,6 +304,10 @@ class Odrive {
                     sub.call(this, telem.encoder0.pos_circular);
                 } else if (key == "encoder1.pos_circular") {
                     sub.call(this, telem.encoder1.pos_circular);
+                } else if (key == "encoder0.shadow_count") {
+                    sub.call(this, telem.encoder0.shadow_count);
+                } else if (key == "encoder1.shadow_count") {
+                    sub.call(this, telem.encoder1.shadow_count);
                 }
             }
         }
@@ -377,6 +381,22 @@ class Odrive {
             "clear_errors", null);
     }
 
+    set ibus_report_filter_k(value) {
+        console.log("set ibus_report_filter_k", value);
+        return myodrive.setRemoteProperty(this._serial_number, "ibus_report_filter_k", value);
+    }
+
+    get ibus_report_filter_k() {
+        return this._odrive.ibus_report_filter_k;
+    }
+
+    get axis1_encoder_config_cpr() {
+        return this._odrive.axis1.encoder.config.cpr;
+    }
+
+    set axis1_encoder_config_cpr(value) {
+        return myodrive.setRemoteProperty(this._serial_number, "axis1.encoder.config.cpr", value);
+    }
     /*
     get serial_number() {
         return new Promise( resolve => {
@@ -386,4 +406,5 @@ class Odrive {
         });
     }
     */
+
 }

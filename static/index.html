@@ -15,6 +15,7 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="/static/css/foundation.css">
+        <link rel="stylesheet" href="/static/css/foundation-icons.css" />
         <link rel="stylesheet" href="/static/css/odrive.css">
     </head>
     <body>
@@ -27,40 +28,29 @@
                     </div>
                     <div class="cell auto">
                         <div class="grid-x">
-                            <div class="axis0 cell medium-6">
+                            <div class="axis0 axis cell medium-6">
                                 <h5>Axis 0</h5>
                                 <div class="button-group">
                                     <button class="calibrate button" disabled>Calibrate</button>
                                     <button class="closed_loop button" disabled>Closed Loop</button>
                                     <button class="idle button" disabled>Idle</button>
                                 </div>
-                                <div class="axis0 tree">
-                                    <ul class="accordion" data-accordion data-allow-all-closed="true">
+                                <div class="axis0">
+                                    <ul class="tree">
 
                                     </ul>
                                 </div>
                             </div>
-                            <div class="axis1 cell medium-6">
+                            <div class="axis1 axis cell medium-6">
                                 <h5>Axis 1</h5>
                                 <div class="button-group">
                                     <button class="calibrate button" disabled>Calibrate</button>
                                     <button class="closed_loop button" disabled>Closed Loop</button>
                                     <button class="idle button" disabled>Idle</button>
                                 </div>
-                                <div class="axis1 tree">
-                                    <ul class="accordion" data-accordion data-allow-all-closed="true">
-                                        <li class="accordion-item" data-accordion-item>
-            
-                                            <a href="#" class="accordion-title">Properties</a>
-                                            <div class="accordion-content" data-tab-content>
-                                            <ul></ul>
-                                            </div>
-                                        </li>
-                                        <!-- Begin -->
-
-                                    
-
-                                        <!-- End -->
+                                <div class="axis1">
+                                    <ul class="tree">
+                                        
                                     </ul>
                                 </div>
                             </div>
@@ -75,10 +65,10 @@
                         </div>
                     </div>
                     <div class="cell">
-                        <ul id="root_properties" class="accordion" data-accordion data-allow-all-closed="true">                            
-                            <li class="accordion-item" data-accordion-item>
-                                <a href="#" class="accordion-title">Base Properties</a>
-                                <div class="accordion-content" data-tab-content>
+                        <ul id="root_properties">                            
+                            <li class="" >
+                                <a href="#" class="">Base Properties</a>
+                                <div class="" >
                                     <ul class="base_properties"></ul>
                                     
                                 </div>

@@ -39,3 +39,70 @@ li.property_row {
     width:800px;
     height:400px;
 }
+
+.axis .tree {
+    background-color: #848484;
+    font-size: 0.8em;
+    list-style-type: none;
+    padding-left: 4px;
+}
+
+.axis .tree ul {
+    list-style-type: none;
+    padding-left:18px;
+    margin:0;
+}
+
+.axis .tree a {
+    color:#ffffff;
+}
+
+li .content .value {
+    color: #fdfcfc;
+    font-family: monospace;
+    font-size: 1.4em;
+}
+
+/*
+.axis .tree .depth_0 {
+    background-color: rgb(225, 225, 225);
+}
+
+.axis .tree .depth_1 {
+    background-color: rgb(214, 214, 214);
+}
+
+.axis .tree .depth_2 {
+    background-color: rgb(230, 230, 230);
+}
+
+.axis .tree .depth_3 {
+    background-color: rgb(232, 232, 232);
+}
+
+.axis .tree .depth_4 {
+    background-color: rgb(207, 207, 207);
+}
+*/
+
+li a.title {
+    margin-left:8px;
+}
+
+/*
+li .item .content {
+    display:none;
+}
+*/
+
+.axis .tree ul {
+    border-left:1px solid rgb(210, 210, 210);
+}
+
+.axis label {
+    display: inline-block;
+    font-weight: normal;
+    font-size: 0.85em;
+    line-height: normal;
+    color: #f4ff6f;
+}
