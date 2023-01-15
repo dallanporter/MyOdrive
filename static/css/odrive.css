@@ -63,6 +63,12 @@ li .content .value {
     font-size: 1.4em;
 }
 
+input[type=checkbox].telem {
+    margin:0;
+    width:10px;
+    height:10px;
+}
+
 /*
 .axis .tree .depth_0 {
     background-color: rgb(225, 225, 225);

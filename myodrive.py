@@ -154,6 +154,42 @@ class Config(OdriveProperty):
 
 
 class Motor(OdriveProperty):
+    class MotorConfig(OdriveProperty):
+        def __init__(self, reference=None):
+            super().__init__(reference)
+            self._update()
+            
+        def _update(self):
+            if self._reference is None:
+                return
+            reference = self._reference
+            self.pre_calibrated = reference.pre_calibrated
+            self.pole_pairs = reference.pole_pairs
+            self.calibration_current= reference.calibration_current
+            self.resistance_calib_max_voltage = reference.resistance_calib_max_voltage
+            self.phase_inductance = reference.phase_inductance
+            self.phase_resistance = reference.phase_resistance
+            self.torque_constant = reference.torque_constant
+            self.motor_type = reference.motor_type
+            self.current_lim = reference.current_lim
+            self.current_lim_margin = reference.current_lim_margin
+            self.torque_lim = reference.torque_lim
+            self.inverter_temp_limit_lower = reference.inverter_temp_limit_lower
+            self.inverter_temp_limit_upper= reference.inverter_temp_limit_upper
+            self.requested_current_range = reference.requested_current_range
+            self.current_control_bandwidth = reference.current_control_bandwidth
+            self.acim_gain_min_flux = reference.acim_gain_min_flux
+            self.acim_autoflux_min_Id =  reference.acim_autoflux_min_Id
+            self.acim_autoflux_enable = reference.acim_autoflux_enable
+            self.acim_autoflux_attack_gain = reference.acim_autoflux_attack_gain
+            self.acim_autoflux_decay_gain = reference.acim_autoflux_decay_gain
+            self.R_wL_FF_enable = reference.R_wL_FF_enable
+            self.bEMF_FF_enable = reference.bEMF_FF_enable
+            self.I_bus_hard_min = reference.I_bus_hard_min
+            self.I_bus_hard_max = reference.I_bus_hard_max
+            self.I_leak_max = reference.I_leak_max
+            self.dc_calib_tau = reference.dc_calib_tau
+    
     def __init__(self, reference=None):
         super().__init__(reference=reference)
         self._update()
@@ -201,6 +237,8 @@ class Motor(OdriveProperty):
         }
         self.n_evt_current_measurement:int = reference.n_evt_current_measurement
         self.n_evt_pwm_update:int = reference.n_evt_pwm_update
+        self.config:self.MotorConfig = self.MotorConfig(reference.config)
+        '''
         self.config = {
             'pre_calibrated': reference.config.pre_calibrated,
             'pole_pairs': reference.config.pole_pairs,
@@ -229,6 +267,7 @@ class Motor(OdriveProperty):
             'I_leak_max': reference.config.I_leak_max,
             'dc_calib_tau': reference.config.dc_calib_tau
         }
+        '''
 
 class AcimEstimator(OdriveProperty):
     def __init__(self, reference=None):
@@ -356,13 +395,6 @@ class Controller(OdriveProperty):
         self.mechanical_power:float = reference.mechanical_power
         self.electrical_power:float = reference.electrical_power
         
-    
-    def move_incremental():
-        pass
-    
-    def start_anticogging_calibration():
-        pass
-
 
 class Encoder(OdriveProperty):
     class Mode(OdriveProperty):
@@ -674,7 +706,8 @@ class CanConfig(OdriveProperty):
         self.is_extended = reference.is_extended
         self.heartbeat_rate_ms = reference.heartbeat_rate_ms
         self.encoder_rate_ms = reference.encoder_rate_ms
-        
+    
+    
     
 
 class OnboardThermistorCurrentLimiter(OdriveProperty):
@@ -762,31 +795,52 @@ class Odrive(OdriveProperty):
         self._telem_update_time = thread_update_time / 5       
         self._json = None
         self._obj = None
+        self._telem_properties = {}
         self._telemObj = None
         self._reboot = False
         self._telemThreadLocked = False
         self._reference = self._odrive # at some point I need to fix this.
         self._update()
 
+    async def onTelemetry(self):
+        print(f"inside onTelemetry")
         
+    async def addTelemetry(self, properties):
+        print(f"Adding telemetry to odrive {self.serial_number}")
+        try:
+            print(properties)
+            for new_property in properties:                
+                self._telem_properties[new_property] = await self._findHandleFromString(new_property)
+        except Exception as ex:
+            print(ex)
+   
+    async def _findHandleFromString(self, tree_string):
+        tree = tree_string.split(".")
+        new_property = tree.pop()
+        property = self
+        t = ""
+        for t in tree:
+            print(t)
+            p = getattr(property, t)
+            if issubclass(type(p), OdriveProperty):
+                property = p
+            
+        return { new_property: property._reference }
         
-
+    async def removeTelemetry(self, properties):
+        print(f"Removing telemetry properties from odrive {self.serial_number}")
+        print(properties)
+        try:
+            for del_property in properties:
+                self._telem_properties.pop(del_property)
+        except Exception as ex:
+            print(ex)
     
     # A higher resolution version of _update for a specific subset of properties
     def _telem(self):
         if self._reboot:
             return
-        out_props = ['vbus_voltage','error','ibus','brake_resistor_current']
-        axis_props = ['error','current_state','requested_state']
-        axis_controller_props = ['error','vel_setpoint','pos_setpoint','torque_setpoint',
-                                'electrical_power','trajectory_done','vel_integrator_torque',
-                                'mechanical_power']
-        axis_encoder_props = ['count_in_cpr','delta_pos_cpr_counts','is_ready','phase',
-                              'pos_abs','pos_circular','pos_cpr_counts','pos_estimate',
-                              'pos_estimate_counts','shadow_count']
-        axis_motor_props = ['error','is_armed','I_bus','current_meas_phA','current_meas_phB',
-                            'current_meas_phC']
-        
+     
         # todo fill out the data for this.
         to = {}
         to['timestamp'] = time.time()
@@ -796,37 +850,11 @@ class Odrive(OdriveProperty):
         
         self._telemThreadLocked = True
         try:
-            for key in out_props:
-                to[key] = getattr(self._odrive, key)
-            axis0 = {}
-            axis1 = {}
-            for key in axis_props:
-                axis0[key] = getattr(self._odrive.axis0, key)
-                axis1[key] = getattr(self._odrive.axis1, key)
-            controller0 = {}
-            controller1 = {}
-            for key in axis_controller_props:
-                controller0[key] = getattr(self._odrive.axis0.controller, key)
-                controller1[key] = getattr(self._odrive.axis1.controller, key)
-            encoder0 = {}
-            encoder1 = {}
-            for key in axis_encoder_props:
-                encoder0[key] = getattr(self._odrive.axis0.encoder, key)
-                encoder1[key] = getattr(self._odrive.axis1.encoder, key)
-            motor0 = {}
-            motor1 = {}
-            for key in axis_motor_props:
-                motor0[key] = getattr(self._odrive.axis0.motor, key)
-                motor1[key] = getattr(self._odrive.axis1.motor, key)
+            for property in self._telem_properties:
+                val = self._telem_properties[property]
+                for key in val:
+                    to[property] = getattr(val[key], key)
                 
-            to['axis0'] = axis0
-            to['axis1'] = axis1
-            to['controller0'] = controller0
-            to['controller1'] = controller1
-            to['encoder0'] = encoder0
-            to['encoder1'] = encoder1
-            to['motor0'] = motor0
-            to['motor1'] = motor1
             self._telemObj = to
         except Exception as e:
             print("Error in Odrive._telem() {}".format(e))
@@ -933,7 +961,8 @@ class Odrive(OdriveProperty):
         print("Inside Odrive.sync() method.")
         self._update()
         self._obj = self._toObj() # This fixes Infinity/NaN issues
-        
+        # add the telemetry data
+        self._obj['telemetry'] = list(self._telem_properties.keys())
         try:
             self._json = json.dumps(self._obj, indent=True)
         except Exception as ex:
@@ -948,7 +977,7 @@ class Odrive(OdriveProperty):
             while self._telemThreadLocked:
                 await asyncio.sleep(0.1)
             await MyOdrive.onTelemetry(self.serial_number, self._telemObj)
-            print("Odrive._telemetryTask tick.")
+            #print("Odrive._telemetryTask tick.")
             await asyncio.sleep(self._telem_update_time)
             if self._is_telemetry_running is False:
                 return
@@ -1127,6 +1156,10 @@ class MyOdrive():
             
             await asyncio.sleep(1)
 
+    @classmethod
+    def sendSocketMessageSync(cls, request_id, result):
+        cls._socketSendQueue.append({'request_id': request_id, 'result': result})
+        
     
     @classmethod
     def attachSocketIO(cls, sio:socketio.AsyncServer=None):
@@ -1138,6 +1171,8 @@ class MyOdrive():
             sio.on("sync", cls.syncOdrive)
             sio.on("call", cls.remoteCall) # a function for an odrive being called remotely
             sio.on("set", cls.remotePropertySet) # a property is being set remotely
+            sio.on("add_telemetry", cls.addTelemetry)
+            sio.on("remove_telemetry", cls.removeTelemetry)
             cls._socketio = sio    
             for od in cls._odrives.values():
                 od._socketio = sio # pass a handle to sio to the od instance
@@ -1171,6 +1206,7 @@ class MyOdrive():
         except Exception as ex:
             print("Exception in MyOdrive.remoteFunctionCall()")
             print(str(ex));
+            await cls._socketio.emit(request_id, {"error":str(ex)})
        
     @classmethod
     def processRemoteRequests(cls):
@@ -1180,6 +1216,7 @@ class MyOdrive():
         print("Inside MyOdrive.processRemoteRequests()")
         while True:
             try:
+                request_id = None
                 while len(cls._remoteFunctionRequests) > 0:
                     message = cls._remoteFunctionRequests.pop(0)
                     print("Processing remote function call in thread")
@@ -1188,24 +1225,32 @@ class MyOdrive():
                     function_name = message["function_name"]
                     arguments = message["args"]
                     tree = function_name.split(".")
+                    function_name = tree.pop()
                     odrive = cls._odrives.get(serial_number)
                     property = odrive
                     for t in tree:
                         print(t)
-                        property = getattr(property, t)
-                    if callable(property):
+                        p = getattr(property, t)
+                        if issubclass(type(p), OdriveProperty):
+                            property = p
+                            
+                    fun = getattr(property._reference, function_name)
+                    if callable(fun):
                         print("Calling function " + function_name)
                         result = None
                         if arguments is None:
-                            result = property()
+                            result = fun()
                         else:
-                            result = property(arguments)
+                            if type(arguments) is list:
+                                result = fun(*arguments)
+                            else:
+                                result = fun(arguments)
                         msg = {"request_id":request_id, "result":result}
                         cls._socketSendQueue.append(msg)                                        
             except Exception as ex:
                 print("Exception in MyOdrive.processRemoteRequests()")
                 print(str(ex))
-            
+                cls.sendSocketMessageSync(request_id, {"error":str(ex)})
             time.sleep(0.5)
     
     @classmethod
@@ -1230,18 +1275,20 @@ class MyOdrive():
                                     {"error":"odrive not found"})
                 return
             tree = new_property.split(".")
+            new_property = tree.pop()
             odrive = cls._odrives.get(serial_number)
             property = odrive
             for t in tree:
                 print(t)
+                
                 p= getattr(property, t)
-                if type(p) is OdriveProperty:
+                if issubclass(type(p), OdriveProperty):
                     property = p
                 
                 print("got property " + t)
                 
             # set it here
-            setattr(property._reference, t, value)
+            setattr(property._reference, new_property, value)
             await cls._socketio.emit(request_id, {"result":"foobar"})
         except Exception as ex:
             print(ex)
@@ -1252,6 +1299,26 @@ class MyOdrive():
         print("Inside MyOdrive.socketio.connect(). Sending list of odrives...")
         await cls._socketio.emit("list_odrives", list(cls._odrives.keys()))
         print("Done")
+        
+    @classmethod
+    async def addTelemetry(cls, sid, message):
+        try:
+            serial_number = message['serial_number']
+            await cls._odrives[serial_number].addTelemetry(message['properties'])
+        except Exception as ex:
+            print("Failed to add telemetry")
+            print(ex)
+            
+    
+    @classmethod
+    async def removeTelemetry(cls, sid, message):
+        print("Foo1")
+        try:
+            serial_number = message['serial_number']
+            await cls._odrives[serial_number].removeTelemetry(message['properties'])
+        except Exception as ex:
+            print("Failed to remove telemetry")
+            print(ex)
     
     @classmethod
     async def handleSocketMessage(cls, sid, message):

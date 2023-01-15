@@ -6,19 +6,7 @@ var myodrive = new MyOdrive();
 var first_odrive = null;
 var odrive_element = null;
 var plot = null;
-var plot_series = [{
-    name: "Encoder 0",
-    data: [],
-    yAxis: 0,
-},{
-    name: "Encoder 1",
-    data: [],
-    yAxis: 0,
-},{
-    name: "Vbus Voltage",
-    yAxis: 1,
-    data: []
-}];
+var plot_series = [];
 
 $(() => {
     $(document).foundation();
@@ -31,13 +19,27 @@ function onOdriveConnected(new_odrive) {
     console.log("App connected odrive");
     first_odrive = new_odrive; // todo, handle multiple someday
     //first_odrive.on("vbus_voltage", onVbusVoltage);
-    first_odrive.on("encoder0.shadow_count", (pos) => {
+    /*
+    first_odrive.on("axis0.encoder.pos_circular", (pos) => {
         plot.series[0].addPoint([new Date().getTime(), pos], true);
     });
-    first_odrive.on("encoder1.shadow_count", (pos) => {
+    first_odrive.on("axis0.encoder.pos_estimate_counts", (pos) => {
         plot.series[1].addPoint([new Date().getTime(), pos], true);
     });
+    first_odrive.on("axis1.encoder.pos_abs", (pos) => {
+        plot.series[2].addPoint([new Date().getTime(), pos], true);
+    });
+    first_odrive.on("axis1.encoder.pos_circular", (pos) => {
+        plot.series[3].addPoint([new Date().getTime(), pos], true);
+    });
+    first_odrive.on("axis1.encoder.pos_estimate_counts", (pos) => {
+        plot.series[4].addPoint([new Date().getTime(), pos], true);
+    });
+    first_odrive.on("axis1.encoder.pos_abs", (pos) => {
+        plot.series[5].addPoint([new Date().getTime(), pos], true);
+    });
     first_odrive.on("vbus_voltage", onVbusVoltage);
+    */
     first_odrive.on("odrive_connected", onOdriveConnected);
     $("button.telemetry.button").on("click", () => {
         console.log("Button clicked!");
@@ -101,9 +103,9 @@ function buildEncoderHTML(axis_number) {
 }
 
 function onVbusVoltage(voltage) {
-    console.log("App got vbus_voltage!", voltage);
+    //console.log("App got vbus_voltage!", voltage);
     let point = [new Date().getTime(), voltage];
-    plot.series[2].addPoint(point, true);
+    plot.series[6].addPoint(point, true);
 }
 
 function onOdriveDisconnected(serial_number) {
@@ -137,6 +139,7 @@ function makeAccordion(obj, depth, parent, axis_name) {
                 html += `<li class="item" >
                 
                 <div id="${axis_name}-${parent}-${property}" >
+                <input class="telem" type="checkbox" name="${axis_name}-${parent}-${property}"></input>
                 <label>${property}:</label> <span class="${axis_name} ${parent} ${property} value">${obj[property]}</span>
                             </div>
                         </li>`;
@@ -161,6 +164,7 @@ function makeAxis(axis, axis_name) {
                         </li>`;
             } else {
                 html += `<li>
+                <input class="telem" type="checkbox" name="${axis_name}-${property}"></input>
                 <label>${property}:</label> <span class="${axis_name} ${property} value">${axis[property]}</span>
                 </li>`;
             }
@@ -193,12 +197,51 @@ function onOdriveSynced(odrive_json) {
                 
             } else {
                 let html = `<li>
+                <input class="telem" type="checkbox" name="${property}"></input>
                 <label>${property}:</label> ${odrive_json[property]}                
                 </li>`;
                 $(html).appendTo("ul.base_properties");
             }
         }
     }
+
+    for (let prop in odrive_json.telemetry) {
+        let prop_dashed = (odrive_json.telemetry[prop]).replaceAll(".", "-")
+        $("input[name=" + prop_dashed + "]").prop("checked", true);
+    }
+
+    first_odrive.on("telem_complete", () => {
+        plot.redraw(false);
+    });
+
+
+
+    // add the checkboxes to the properties.
+    $("input[type=checkbox].telem").on("change", (e) => {
+        console.log("tick");
+        let param_name = (e.currentTarget.name).replaceAll("-", ".");
+        if (e.currentTarget.checked) {
+            // add it
+            first_odrive.addTelemetry(param_name);
+            let series = plot.addSeries({
+                name: param_name,
+                data: [],
+            });
+            first_odrive.on(param_name, (pos) => {
+                series.addPoint([new Date().getTime(), pos], false);
+            });
+        } else {
+            // remove it.
+            first_odrive.removeTelemetry(param_name);
+        }
+    });
+
+    // TEST register some telemetry items
+    /*
+    first_odrive.addTelemetry(["vbus_voltage", "error", "axis0.requested_state",
+        "axis1.requested_state", "axis0.encoder.pos_abs", "axis1.encoder.pos_abs"]);
+    */
+
     $(".foo").toggle();
 
     // register click handlers to the accordion
@@ -213,56 +256,6 @@ function onOdriveSynced(odrive_json) {
     });
 }
 
-/*
-function onOdriveSynced(odrive_json) {
-    console.log("App synced odrive");
-    // loop through the odrive_json and update the html
-    for (let property in odrive_json) {
-        if (odrive_json.hasOwnProperty(property)) {
-            //console.log("property", property);
-            if (property == "axis0" || property == "axis1") {
-                let axis = odrive_json[property];
-                for (let axis_property in axis) {
-                    if (axis.hasOwnProperty(axis_property)) {
-                        //console.log("axis_property", axis_property);
-                        if (typeof(axis[axis_property]) != "object") {
-                            $(".axis0 .axis_properties ." + axis_property).html(axis[axis_property]);
-                            $(".axis1 .axis_properties ." + axis_property).html(axis[axis_property]);
-                        } else if (axis_property == "encoder") {
-                            let encoder = axis[axis_property];
-                            for (let encoder_property in encoder) {
-                                if (encoder.hasOwnProperty(encoder_property)) {
-                                    //console.log("encoder_property", encoder_property);
-                                    $("." + property + " .encoder ." + encoder_property).html(encoder[encoder_property]);
-                                    
-                                }
-                            }
-                        } else if (axis_property == "controller") {
-
-                        } else if (axis_property == "motor") { 
-
-                        } else if (axis_property == "acim_estimator") {
-
-                        } else if (axis_property == "trap_traj") {
-
-                        } else if (axis_property == "config") {
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if (odrive_json.axis0.current_state == 1) {
-        $(".axis0 .calibrate.button").prop("disabled", false);
-        $(".axis0 .closed_loop.button").prop("disabled", false);
-    }
-    if (odrive_json.axis1.current_state == 1) {
-        $(".axis1 .calibrate.button").prop("disabled", false);
-        $(".axis1 .closed_loop.button").prop("disabled", false);
-    }
-}
-*/
 
 function onTelemetryButtonClick() {
     console.log("Inside onTelemetry button click");
@@ -294,8 +287,8 @@ function initPlot() {
             title: {
                 text: "Counts"
             },
-            max: 10000,
-            min: 0,
+            max: 5,
+            min: -5,
             opposite: true,
         },{
             title: {

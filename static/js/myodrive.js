@@ -52,7 +52,7 @@ class MyOdrive {
     }
 
     onSocketTelemetry(message) {
-        console.log("MyOdrive.onSocketTelemetry()");
+        //console.log("MyOdrive.onSocketTelemetry()");
         let m = this.helperGetSerialMessage(message);
         if (m) {
             let odrive = this.getOdrive(m.serial_number);
@@ -101,7 +101,7 @@ class MyOdrive {
                 });
                 setTimeout(() => {
                     reject("Timeout");
-                }, 1000);
+                }, 5000);
             });
         } else {
             return Promise.reject("No socket connection");
@@ -131,7 +131,7 @@ class MyOdrive {
                 });
                 setTimeout(() => {
                     reject("Timeout");
-                }, 1000);
+                }, 5000);
             });
         } else {
             return Promise.reject("No socket connection");
@@ -284,6 +284,30 @@ class Odrive {
         }
     }
 
+    addTelemetry(properties) {
+        console.log("Adding telemetry");
+        if (typeof(properties) == "string") {
+            properties = [properties];
+        }
+        let payload = {
+            serial_number: this._serial_number,
+            properties: properties,
+        };
+        myodrive.emit("add_telemetry", payload);
+    }
+
+    removeTelemetry(properties) {
+        console.log("Removing telemetry");
+        if (typeof(properties) == "string") {
+            properties = [properties];
+        }
+        let payload = {
+            serial_number: this._serial_number,
+            properties: properties,
+        };
+        myodrive.emit("remove_telemetry", payload);
+    }
+
     sync() {
         console.log("odrive.sync() called");
         myodrive.emit("sync", this._serial_number);
@@ -291,36 +315,38 @@ class Odrive {
 
     syncTelemetry(telem) {
         this.telemetry = telem;
+       // TODO expand the object tree into a single dot separated string.
+        let rec_func = (prev_key, obj, tree, out) => {
+            if (typeof(obj) == "object") {
+                for (let key in obj) {
+                    let new_tree = tree + "." + key;
+                    rec_func(key, obj[key], new_tree, out);
+                }
+            } else {
+                out[tree] = obj;
+                this.broadcastEvent(tree, obj);
+                return;
+            }
+        };
 
-        //this.element.find(".property.serial_number").text(this._serial_number);
-        //this.element.find(".property.vbus_voltage").text(telem.vbus_voltage);
-
-
-        for (let key in this.event_subscribers) {
-            for (let i in this.event_subscribers[key]) {
-                // TODO make this better
-                let sub = this.event_subscribers[key][i];                
-                if (key == "encoder0.pos_circular") {
-                    sub.call(this, telem.encoder0.pos_circular);
-                } else if (key == "encoder1.pos_circular") {
-                    sub.call(this, telem.encoder1.pos_circular);
-                } else if (key == "encoder0.shadow_count") {
-                    sub.call(this, telem.encoder0.shadow_count);
-                } else if (key == "encoder1.shadow_count") {
-                    sub.call(this, telem.encoder1.shadow_count);
+        if (typeof(telem) != "object") {
+            console.log("telem is not an object", telem);
+            return;
+        }
+        try {
+            let telem_vals = {};
+            for (let key in telem) {
+                let tree = key;
+                if (typeof(telem[key]) == "object") {                                    
+                    rec_func(key, telem[key], tree, telem_vals);                    
+                } else {
+                    this.broadcastEvent(tree, telem[key]);
                 }
             }
+        } catch (ex) {
+            console.log("syncTelemetry() exception: ", ex);
         }
-
-
-        if (this.event_subscribers.hasOwnProperty("vbus_voltage")) {
-            let subs = this.event_subscribers.vbus_voltage;
-            for (let i in subs) {
-                if (typeof(subs[i]) == "function") {
-                    subs[i].call(this, telem.vbus_voltage);
-                }
-            }
-        }
+        this.broadcastEvent("telm_complete", true);
     }
 
     // Sync functions to the odrive remote hardware.
@@ -381,30 +407,15 @@ class Odrive {
             "clear_errors", null);
     }
 
-    set ibus_report_filter_k(value) {
-        console.log("set ibus_report_filter_k", value);
-        return myodrive.setRemoteProperty(this._serial_number, "ibus_report_filter_k", value);
+    setRemoteProperty(property, value) {
+        console.log("setRemoteProperty", value);
+        return myodrive.setRemoteProperty(this._serial_number, property, value);
     }
 
-    get ibus_report_filter_k() {
-        return this._odrive.ibus_report_filter_k;
+    callRemoteFunction(remote_function, value) {
+        console.log("setRemoteFunction", value);
+        return myodrive.callRemoteFunction(this._serial_number, remote_function, value);
     }
 
-    get axis1_encoder_config_cpr() {
-        return this._odrive.axis1.encoder.config.cpr;
-    }
-
-    set axis1_encoder_config_cpr(value) {
-        return myodrive.setRemoteProperty(this._serial_number, "axis1.encoder.config.cpr", value);
-    }
-    /*
-    get serial_number() {
-        return new Promise( resolve => {
-            setTimeout(() => {
-                resolve("foobar");
-            }, 4000);
-        });
-    }
-    */
 
 }
