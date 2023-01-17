@@ -69,6 +69,11 @@ input[type=checkbox].telem {
     height:10px;
 }
 
+span.value.editable {
+    outline: 1px solid white;
+    padding: 0 10px;
+}
+
 /*
 .axis .tree .depth_0 {
     background-color: rgb(225, 225, 225);

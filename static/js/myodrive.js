@@ -10,6 +10,7 @@ class MyOdrive {
         this.socket.on("odrive", this.onOdrive.bind(this));
         this.socket.on("telem", this.onSocketTelemetry.bind(this));
         this.socket.on("sync", this.onSocketSync.bind(this));
+        this.socket.on("joystick", this.onSocketJoystick.bind(this));
 
         this.event_subscribers = {};
         this.on = (event_name, callback) => {
@@ -23,6 +24,18 @@ class MyOdrive {
     init(socket) {
         console.log("MyOdrive.init(socket)");
         
+    }
+
+    enableJoystick() {
+        this.socket.emit("joystick", { enable: true });
+    }
+
+    disableJoystick() {
+        this.socket.emit("joystick", { enable: false });
+    }
+
+    onSocketJoystick(message) {
+        this.broadcastEvent("joystick", message);
     }
 
     onSocketSync(message) {
@@ -241,7 +254,7 @@ class Odrive {
         this._serial_number = serial_number;
         this._odrive = null;
         this._is_telem_running = false;
-
+        this._is_mapped = false;
       
         this.telemetry = null;
 
@@ -270,7 +283,75 @@ class Odrive {
         } else {
             $.extend(this._odrive, message);
         }
+
+        // Here will map the interface details to the object that came back.
+        /*
+        if (!this._is_mapped) {
+            let mapped_odrive = this._mapInterface(this._odrive);
+            this._is_mapped = true;
+        }
+        */
+        
+
         this.broadcastEvent("synced", this._odrive);
+    }
+
+    _mapInterface(property, cname, piface=null) {
+        //console.log("_mapInterface", property, cname);
+        if (property.hasOwnProperty("class_name")) {
+            let class_name = property.class_name;
+            //console.log("_mapInterface found class name " + class_name + " in property.");
+            if (odrive_map.interfaces.hasOwnProperty(class_name)) {
+                let iface = odrive_map.interfaces[class_name];
+                for (let propname in property) {
+                    let child_prop = property[propname];
+                    //console.log(`Checking ${class_name} property ${propname}`);
+  
+                    let new_iface = iface.attributes[propname];
+                    if (typeof(child_prop) == "object") {
+                        this._mapInterface(child_prop, class_name, new_iface);
+                    } else {
+                        //console.log(`Class ${class_name} has property ${propname}`);
+                        let newprop = {
+                            value: child_prop,
+                            iface: new_iface,
+                        };
+                        //console.log(`${class_name} -> ${propname} setting iface.`);
+                        property[propname] = newprop;
+
+                    }
+                }
+            }
+
+        } else {
+            //console.log(`Object from ${cname} class has no class_name property.`);
+            if (piface == null) {
+                piface = odrive_map.interfaces[cname].attributes;
+            }
+            for (let propname in property) {
+                //console.log(`Checking ${propname}...`);
+                let child_prop = property[propname];
+                if (piface.hasOwnProperty("attributes")) {
+                    piface = piface.attributes;
+                }
+                if (piface.hasOwnProperty(propname)) {
+                    if (typeof(child_prop) == "object") {
+                        //console.log(`Found a sub-attribute ${propname}`);
+                        this._mapInterface(child_prop, cname, piface[propname].attributes);
+                    } else {
+                        let newprop = {
+                            value: child_prop,
+                            iface: piface[propname],
+                        };
+                        //console.log(`found interface attribute for ${propname}`);
+                        property[propname] = newprop;
+                    }
+                } else {
+                    //console.log(`!! didn't find an interface for class ${cname} ${propname}`);
+                }
+            }
+
+        }
     }
 
     broadcastEvent(name, value) {
@@ -310,8 +391,11 @@ class Odrive {
 
     sync() {
         console.log("odrive.sync() called");
+        
         myodrive.emit("sync", this._serial_number);
     }
+
+    
 
     syncTelemetry(telem) {
         this.telemetry = telem;
@@ -334,82 +418,23 @@ class Odrive {
             return;
         }
         try {
+            let timestamp = telem.timestamp;
             let telem_vals = {};
             for (let key in telem) {
+                if (key == "timestamp") {
+                    continue;
+                }
                 let tree = key;
                 if (typeof(telem[key]) == "object") {                                    
                     rec_func(key, telem[key], tree, telem_vals);                    
                 } else {
-                    this.broadcastEvent(tree, telem[key]);
+                    this.broadcastEvent(tree, [timestamp, telem[key]]);
                 }
             }
         } catch (ex) {
             console.log("syncTelemetry() exception: ", ex);
         }
-        this.broadcastEvent("telm_complete", true);
-    }
-
-    // Sync functions to the odrive remote hardware.
-    // Calls the remote test_function on the odrive and
-    // returns a promise.
-    test_function(delta) {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "test_function", delta);
-    }
-
-    get_adc_voltage(gpio) {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "get_adc_voltage", gpio);
-    }
-
-    save_configuration() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "save_configuration", null);
-    }
-
-    erase_configuration() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "erase_configuration", null);
-    }
-
-    reboot() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "reboot", null);
-    }
-
-    enter_dfu_mode() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "enter_dfu_mode", args);
-    }
-
-    get_interrupt_status(irqn) {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "get_interrupt_status", irqn);
-    }
-
-    get_dma_status(stream_num) {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "get_dma_status", stream_num);
-    }
-
-    get_gpio_states() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "get_gpio_states", null);
-    }
-
-    get_drv_fault() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "get_drv_fault", null);
-    }
-
-    clear_errors() {
-        return myodrive.callRemoteFunction(this._serial_number,
-            "clear_errors", null);
-    }
-
-    setRemoteProperty(property, value) {
-        console.log("setRemoteProperty", value);
-        return myodrive.setRemoteProperty(this._serial_number, property, value);
+        this.broadcastEvent("telem_complete", true);
     }
 
     callRemoteFunction(remote_function, value) {
@@ -417,5 +442,8 @@ class Odrive {
         return myodrive.callRemoteFunction(this._serial_number, remote_function, value);
     }
 
+    setRemoteProperty(remote_property, value) {
+        return myodrive.setRemoteProperty(this._serial_number, remote_property, value);
+    }
 
 }

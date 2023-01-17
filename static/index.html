@@ -10,6 +10,7 @@
         <script src="/static/js/vendor/what-input.js"></script>
         <script src="/static/js/vendor/foundation.js"></script>
         <script src="/static/js/vendor/highcharts/highcharts.js"></script>
+        <script src="/static/js/odrive_map.js"></script>
         <script src="/static/js/myodrive.js"></script>
         <script src="/static/js/app.js"></script>
         <meta name="description" content="">
@@ -29,29 +30,49 @@
                     <div class="cell auto">
                         <div class="grid-x">
                             <div class="axis0 axis cell medium-6">
-                                <h5>Axis 0 (Tilt)</h5>
-                                <div class="button-group">
-                                    <button class="calibrate button" disabled>Calibrate</button>
-                                    <button class="closed_loop button" disabled>Closed Loop</button>
-                                    <button class="idle button" disabled>Idle</button>
+                                <h5><span class="badge alert">!</span> Axis 0 (Tilt)</h5>
+                                <div class="cell">
+                                    <div class="button-group">
+                                        <button onlick="onAxis0Calibrate()" class="calibrate button" disabled>Calibrate</button>
+                                        <button onclick="onAxis0ClosedLoop()" class="closed_loop button" disabled>Closed Loop</button>
+                                        <button onclick="onAxis0Idle()" class="idle button" disabled>Idle</button>
+                                    </div>
                                 </div>
-                                <div class="axis0">
-                                    <ul class="tree">
+                                <div class="cell">
+                                    <button onclick="onAxis0MoveIncrementalPos()" class="button" type="button">Move Incremental Positive</button>
+                                    <button onclick="onAxis0MoveIncrementalNeg()" class="button" type="button">Move Incremental Negative</button>
+                                </div>
+                                <div class="cell">
+                                    <div class="axis0">
+                                        <ul class="tree">
 
-                                    </ul>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                             <div class="axis1 axis cell medium-6">
-                                <h5>Axis 1 (Pan)</h5>
-                                <div class="button-group">
-                                    <button class="calibrate button" disabled>Calibrate</button>
-                                    <button class="closed_loop button" disabled>Closed Loop</button>
-                                    <button class="idle button" disabled>Idle</button>
+                                <h5><span class="badge alert">!</span> Axis 1 (Pan)</h5>
+                                <div class="cell">
+                                    <div class="button-roup">
+                                        <button onClick="onAxis1Calibrate()" class="calibrate button" disabled>Calibrate</button>
+                                        <button onClick="onAxis1ClosedLoop()" class="closed_loop button">Closed Loop</button>
+                                        <button onClick="onAxis1Idle()" class="idle button">Idle</button>
+                                    </div>
                                 </div>
-                                <div class="axis1">
-                                    <ul class="tree">
-                                        
-                                    </ul>
+                                
+                                <div class="cell">
+                                    <button onclick="onToggleJoystick()" class="button">Toggle Joystick</button>
+                                </div>
+                                <div class="cell">
+                                    <button onclick="onAxis1MoveIncrementalPos()" class="button" type="button">Move Incremental Positive</button>
+                                    <button onclick="onAxis1MoveIncrementalNeg()" class="button" type="button">Move Incremental Negative</button>
+                                </div>
+                                <div class="cell">
+                                    <div class="axis1">
+                                        <ul class="tree">
+                                            
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -62,6 +83,7 @@
                         <div class="button-group">
                             <button class="telemetry button" disabled>Start Telemetry</button>
                             <button class="sync button" disabled>Sync Odrive</button>
+                            <button onclick="onSaveSettings()" class="save button" disabled>Save Settings</button>
                         </div>
                     </div>
                     <div class="cell">
@@ -76,9 +98,20 @@
                         </ul>
                     </div>
                 </div>
+                
             </div>
         </div>
-        
+        <div class="tiny reveal" id="parameter_modal" data-reveal>
+            <div>
+                <label><span class="modal_property_name">Parameter:</label>
+                <input type="text" name="modal_input" value="TODO"></input>
+                <button type="button" onclick="onModalApply()">Apply</button>
+                <button type="button" onclick="onModalCancel()">Canel</button>
+            </div>
+            <button class="close-button" data-close aria-label="Close modal" type="button">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
         <canvas id="main_canvas" width="900" height="500"></canvas>
     </body>
 </html>

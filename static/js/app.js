@@ -7,6 +7,9 @@ var first_odrive = null;
 var odrive_element = null;
 var plot = null;
 var plot_series = [];
+var joystick = { x: [], y:[] };
+var enable_joystick = false;
+var modal_param = null;
 
 $(() => {
     $(document).foundation();
@@ -18,6 +21,7 @@ $(() => {
 function onOdriveConnected(new_odrive) {
     console.log("App connected odrive");
     first_odrive = new_odrive; // todo, handle multiple someday
+    first_odrive.is_loaded = false; // set to true after the UI has been generated.
     //first_odrive.on("vbus_voltage", onVbusVoltage);
     /*
     first_odrive.on("axis0.encoder.pos_circular", (pos) => {
@@ -59,7 +63,7 @@ function onOdriveConnected(new_odrive) {
     });
     first_odrive.on("synced", onOdriveSynced);
 
-    $(".telemetry.button, .sync.button").prop("disabled", false);
+    $(".telemetry.button, .sync.button, .save.button").prop("disabled", false);
     buildAxisHTML(new_odrive._odrive, 0);
     buildAxisHTML(new_odrive._odrive, 1);
 }
@@ -136,11 +140,15 @@ function makeAccordion(obj, depth, parent, axis_name) {
                             `</div>
                         </li>`;
             } else {
+                
                 html += `<li class="item" >
                 
                 <div id="${axis_name}-${parent}-${property}" >
                 <input class="telem" type="checkbox" name="${axis_name}-${parent}-${property}"></input>
-                <label>${property}:</label> <span class="${axis_name} ${parent} ${property} value">${obj[property]}</span>
+                <label>${property}:</label> 
+                <a href="#" data-open="parameter_modal" data-property="${axis_name}-${parent}-${property}">
+                <span class="${axis_name} ${parent} ${property} value editable">${obj[property]}</span>
+                </a>
                             </div>
                         </li>`;
             }
@@ -153,6 +161,7 @@ function makeAccordion(obj, depth, parent, axis_name) {
 function makeAxis(axis, axis_name) {
     let html = "";
     for (let property in axis) {
+        
         if (axis.hasOwnProperty(property)) {
             if (typeof(axis[property]) == "object") {
                 html += `<li class="item" >
@@ -163,9 +172,13 @@ function makeAxis(axis, axis_name) {
                             </div>
                         </li>`;
             } else {
+                
                 html += `<li>
                 <input class="telem" type="checkbox" name="${axis_name}-${property}"></input>
-                <label>${property}:</label> <span class="${axis_name} ${property} value">${axis[property]}</span>
+                <label>${property}:</label> 
+                <a href="#" data-open="parameter_modal" data-property="${axis_name}-${property}">
+                <span class="${axis_name} ${property} value editable">${axis[property]}</span>
+                </a>
                 </li>`;
             }
         }
@@ -173,9 +186,38 @@ function makeAxis(axis, axis_name) {
     return html;
 }
 
-function onOdriveSynced(odrive_json) {
+function updateProperty(property, key, tree) {
+    //console.log(`Updating property ${key}`, tree);    
+    if (typeof(property) == "object") {
+        for (let p in property) {
+            tree.push(key);
+            updateProperty(property[p], p, tree);
+            tree.pop();
+        }
+    } else {
+        let fullprop = tree.join("-") + key;
+        //console.log(`Got to a non-object: ${key} = ${property} (${fullprop})`);
+        $(`a[data-property=${fullprop}] span`).text(property);
+    }
+}
 
+function updateExistingProperties(odrive_json) {
+    console.log("udpateExistingProperties()");
     for (let property in odrive_json) {
+        updateProperty(odrive_json[property], property, []);
+    }
+}
+
+function onOdriveSynced(odrive_json) {
+    console.log("Inside onOdriveSynced in app.js");
+    if (first_odrive.is_loaded) {
+        updateExistingProperties(odrive_json);
+        return;
+    }
+    for (let property in odrive_json) {
+        if (property == "class_name" || property == "iface") {
+            continue;
+        }
         if (odrive_json.hasOwnProperty(property)) {
             if (property == "axis0" || property == "axis1") {
                 
@@ -198,23 +240,65 @@ function onOdriveSynced(odrive_json) {
             } else {
                 let html = `<li>
                 <input class="telem" type="checkbox" name="${property}"></input>
-                <label>${property}:</label> ${odrive_json[property]}                
+                <label>${property}:</label> 
+                <a href="#" data-open="parameter_modal" data-property="${property}">
+                <span class="value editable">${odrive_json[property]}</span>
+                </a>
                 </li>`;
                 $(html).appendTo("ul.base_properties");
             }
         }
     }
 
+    $(".axis0 button").prop("disabled", false);
+    $(".axis1 button").prop("disabled", false);
+
     for (let prop in odrive_json.telemetry) {
-        let prop_dashed = (odrive_json.telemetry[prop]).replaceAll(".", "-")
-        $("input[name=" + prop_dashed + "]").prop("checked", true);
+        let prop_dashed = (odrive_json.telemetry[prop]).replaceAll(".", "-");
+        $(`input[name=${prop_dashed}]`).prop("checked", true);
+        addSeries(prop_dashed);
     }
 
     first_odrive.on("telem_complete", () => {
         plot.redraw(false);
     });
 
+    $(".reveal").on("open.zf.trigger", (e, t) => {
+        let prop = (t.data("property")).replaceAll("-", ".");
+        let val = t.find(".value").text();
+        console.log("Caught the modal open event !", prop);
+        $("#parameter_modal .modal_property_name").text(prop);
+        $("#parameter_modal input[name=modal_input]").prop("value", val);
+        modal_param = { property: prop,
+            value: val };
+    });
 
+    $(".reveal").on("close.zf.trigger", (e) => {
+        console.log("Caught the modal close event!");
+        modal_param = null;
+    });
+
+
+    let series_x = plot.addSeries({
+        name: "joystick X",
+        data: [],
+        yAxis: 2,
+    });
+    let series_y = plot.addSeries({
+        name: "joystick Y",
+        data: [],
+        yAxis: 2
+    });
+    first_odrive.on("joystick_y", (pos) => {
+        let y = pos[1];
+        joystick.y.push(y);
+        series_y.addPoint([pos[0], y], false, false);
+    });
+    first_odrive.on("joystick_x", (pos) => {
+        let x = pos[1];
+        joystick.x.push(x);
+        series_x.addPoint([pos[0], x], false, false);                
+    });
 
     // add the checkboxes to the properties.
     $("input[type=checkbox].telem").on("change", (e) => {
@@ -223,18 +307,29 @@ function onOdriveSynced(odrive_json) {
         if (e.currentTarget.checked) {
             // add it
             first_odrive.addTelemetry(param_name);
-            let series = plot.addSeries({
-                name: param_name,
-                data: [],
-            });
-            first_odrive.on(param_name, (pos) => {
-                series.addPoint([new Date().getTime(), pos], false);
-            });
+            addSeries(param_name);
         } else {
             // remove it.
             first_odrive.removeTelemetry(param_name);
+            removeSeries(param_name);
         }
     });
+
+    function addSeries(param_name) {
+        
+        let series = plot.addSeries({
+            name: param_name,
+            data: [],
+            yAxis: 0
+        });
+        first_odrive.on(param_name, (pos) => {
+            series.addPoint([pos[0], pos[1]], false);            
+        });
+    }
+
+    function removeSeries(param_name) {
+        console.log("TODO - remove series");
+    }
 
     // TEST register some telemetry items
     /*
@@ -254,6 +349,8 @@ function onOdriveSynced(odrive_json) {
         $(c).toggle();
         event.preventDefault();
     });
+
+    first_odrive.is_loaded = true;
 }
 
 
@@ -287,8 +384,8 @@ function initPlot() {
             title: {
                 text: "Counts"
             },
-            max: 5,
-            min: -5,
+            max: 2,
+            min: -2,
             opposite: true,
         },{
             title: {
@@ -296,6 +393,12 @@ function initPlot() {
             },
             max: 24,
             min: 0,
+        },{
+            title: {
+                text: "Joystick"
+            },
+            max: 0.5,
+            min: -0.5
         }],
         plotOptions: {            
             series: {
@@ -311,4 +414,82 @@ function initPlot() {
         },
         series: plot_series
     });
+}
+
+function onAxis0MoveIncrementalPos() {
+    console.log("onMoveIncrementalPos()");
+    first_odrive.callRemoteFunction("axis0.controller.move_incremental", [0.03, true]);
+}
+
+function onAxis0MoveIncrementalNeg() {
+    console.log("onMoveIncrementalNeg()");
+    first_odrive.callRemoteFunction("axis0.controller.move_incremental", [-0.03, true]);
+}
+
+function onAxis1MoveIncrementalPos() {
+    console.log("onMoveIncrementalPos()");
+    first_odrive.callRemoteFunction("axis1.controller.move_incremental", [0.03, true]);
+}
+
+function onAxis1MoveIncrementalNeg() {
+    console.log("onMoveIncrementalNeg()");
+    first_odrive.callRemoteFunction("axis1.controller.move_incremental", [-0.03, true]);
+}
+
+function onAxis0Idle() {
+    console.log("onAxis0Idle()");
+    first_odrive.setRemoteProperty("axis0.requested_state", 1);
+}
+
+function onAxis0ClosedLoop() {
+    console.log("onAxis0ClosedLoop()");
+    first_odrive.setRemoteProperty("axis0.requested_state", 8);
+}
+
+function onAxis1Idle() {
+    console.log("onAxis1Idle()");
+    first_odrive.setRemoteProperty("axis1.requested_state", 1);
+}
+
+function onAxis1ClosedLoop() {
+    console.log("onAxis1ClosedLoop()");
+    first_odrive.setRemoteProperty("axis1.requested_state", 8);
+}
+
+function onAxis1Calibrate() {
+    first_odrive.setRemoteProperty("axis1.requested_state", 7);
+}
+
+function onAxis0Calibrate() {
+    first_odrive.setRemoteProperty("axis0.requested_state", 7);
+}
+
+function onSaveSettings() {
+    if (confirm("Save settings to Odrive firmware?")) {
+        first_odrive.callRemoteFunction("save_configuration", []);
+    }
+}
+
+function onToggleJoystick(e) {
+    console.log("onToggleJoystick");
+    enable_joystick = !enable_joystick;
+    if (enable_joystick) {
+        myodrive.enableJoystick();
+    } else {
+        myodrive.disableJoystick();
+    }
+}
+
+function onModalCancel(e) {
+    console.log("onModalCancel()");
+}
+
+function onModalApply(e) {    
+    let new_val = $("#parameter_modal input[name=modal_input]").val();
+    
+    console.log(`onModalApply() TODO: update ${modal_param.property} = ${new_val}`);
+    first_odrive.setRemoteProperty(modal_param.property, new_val).then( () => {
+        console.log("Promise finished - close this modal");
+    });
+
 }

@@ -9,13 +9,15 @@ from concurrent.futures import ThreadPoolExecutor
 import usb
 import time
 import math
+import serial
+import numpy
 
 class OdriveProperty():
     def __init__(self, reference=None):
         self._reference = reference # pointer to the hardware property
  
     def _toObj(self) -> dict:
-        out = {}
+        out = { 'class_name': type(self).__name__ }
         for param in dir(self):
             if param.startswith("_") == True:
                 continue
@@ -304,6 +306,58 @@ class Controller(OdriveProperty):
                 'VELOCITY_CONTROL':  { 'doc': 'foo'},
                 'POSITION_CONTROL':  { 'doc': 'foo'}
             }
+            
+    class Config(OdriveProperty):
+        def __init__(self, reference=None):
+            super().__init__(reference=reference)
+            self._update()
+            
+        def _update(self):
+            if self._reference is None:
+                return
+            reference = self._reference
+
+            self.gain_scheduling_width = reference.gain_scheduling_width
+            self.enable_vel_limit = reference.enable_vel_limit
+            self.enable_torque_mode_vel_limit = reference.enable_torque_mode_vel_limit
+            self.enable_gain_scheduling = reference.enable_gain_scheduling
+            self.enable_overspeed_error = reference.enable_overspeed_error
+            self.control_mode = reference.control_mode
+            #'control_mode': self.ControlMode(reference.config.control_mode),
+            self.input_mode = reference.input_mode
+            #'input_mode': self.InputMode(reference.config.input_mode),
+            self.pos_gain = reference.pos_gain
+            self.vel_gain = reference.vel_gain
+            self.vel_integrator_gain = reference.vel_integrator_gain
+            self.vel_integrator_limit = reference.vel_integrator_limit
+            self.vel_limit = reference.vel_limit
+            self.vel_limit_tolerance = reference.vel_limit_tolerance
+            self.vel_ramp_rate = reference.vel_ramp_rate
+            self.torque_ramp_rate = reference.torque_ramp_rate
+            self.circular_setpoints = reference.circular_setpoints
+            self.circular_setpoint_range = reference.circular_setpoint_range
+            self.steps_per_circular_range = reference.steps_per_circular_range
+            self.homing_speed = reference.homing_speed
+            self.inertia = reference.inertia
+            self.axis_to_mirror = reference.axis_to_mirror
+            self.mirror_ratio = reference.mirror_ratio
+            self.torque_mirror_ratio = reference.torque_mirror_ratio
+            self.load_encoder_axis = reference.load_encoder_axis
+            self.input_filter_bandwidth = reference.input_filter_bandwidth
+            self.anticogging = {
+                'index': reference.anticogging.index,
+                'pre_calibrated': reference.anticogging.pre_calibrated,
+                'calib_anticogging': reference.anticogging.calib_anticogging,
+                'calib_pos_threshold': reference.anticogging.calib_pos_threshold,
+                'calib_vel_threshold': reference.anticogging.calib_vel_threshold,
+                'cogging_ratio': reference.anticogging.cogging_ratio,
+                'anticogging_enabled': reference.anticogging.anticogging_enabled
+            },
+            self.mechanical_power_bandwidth = reference.mechanical_power_bandwidth
+            self.electrical_power_bandwidth = reference.electrical_power_bandwidth
+            self.spinout_mechanical_power_threshold = reference.spinout_mechanical_power_threshold
+            self.spinout_electrical_power_threshold = reference.spinout_electrical_power_threshold
+            
     
     class InputMode(OdriveProperty):
         def __init__(self, reference=None):
@@ -346,46 +400,10 @@ class Controller(OdriveProperty):
         self.vel_integrator_torque:float = reference.vel_integrator_torque
         self.anticogging_valid:float = reference.anticogging_valid
         self.autotuning_phase:float = reference.autotuning_phase
-        self.config = {
-            'gain_scheduling_width': reference.config.gain_scheduling_width,
-            'enable_vel_limit': reference.config.enable_vel_limit,
-            'enable_torque_mode_vel_limit': reference.config.enable_torque_mode_vel_limit,
-            'enable_gain_scheduling': reference.config.enable_gain_scheduling,
-            'enable_overspeed_error': reference.config.enable_overspeed_error,
-            'control_mode': self.ControlMode(reference.config.control_mode),
-            'input_mode': self.InputMode(reference.config.input_mode),
-            'pos_gain': reference.config.pos_gain,
-            'vel_gain': reference.config.vel_gain,
-            'vel_integrator_gain': reference.config.vel_integrator_gain,
-            'vel_integrator_limit': reference.config.vel_integrator_limit,
-            'vel_limit': reference.config.vel_limit,
-            'vel_limit_tolerance': reference.config.vel_limit_tolerance,
-            'vel_ramp_rate': reference.config.vel_ramp_rate,
-            'torque_ramp_rate': reference.config.torque_ramp_rate,
-            'circular_setpoints': reference.config.circular_setpoints,
-            'circular_setpoint_range': reference.config.circular_setpoint_range,
-            'steps_per_circular_range': reference.config.steps_per_circular_range,
-            'homing_speed': reference.config.homing_speed,
-            'inertia': reference.config.inertia,
-            'axis_to_mirror': reference.config.axis_to_mirror,
-            'mirror_ratio': reference.config.mirror_ratio,
-            'torque_mirror_ratio': reference.config.torque_mirror_ratio,
-            'load_encoder_axis': reference.config.load_encoder_axis,
-            'input_filter_bandwidth': reference.config.input_filter_bandwidth,
-            'anticogging': {
-                'index': reference.config.anticogging.index,
-                'pre_calibrated': reference.config.anticogging.pre_calibrated,
-                'calib_anticogging': reference.config.anticogging.calib_anticogging,
-                'calib_pos_threshold': reference.config.anticogging.calib_pos_threshold,
-                'calib_vel_threshold': reference.config.anticogging.calib_vel_threshold,
-                'cogging_ratio': reference.config.anticogging.cogging_ratio,
-                'anticogging_enabled': reference.config.anticogging.anticogging_enabled
-            },
-            'mechanical_power_bandwidth': reference.config.mechanical_power_bandwidth,
-            'electrical_power_bandwidth': reference.config.electrical_power_bandwidth,
-            'spinout_mechanical_power_threshold': reference.config.spinout_mechanical_power_threshold,
-            'spinout_electrical_power_threshold': reference.config.spinout_electrical_power_threshold,
-        }
+        self.config = reference.config
+        """
+        
+        """
         self.autotuning = {
             'frequency': reference.autotuning.frequency,
             'pos_amplitude': reference.autotuning.pos_amplitude,
@@ -394,6 +412,7 @@ class Controller(OdriveProperty):
         }
         self.mechanical_power:float = reference.mechanical_power
         self.electrical_power:float = reference.electrical_power
+        self.config:self.Config = self.Config(reference=reference.config)
         
 
 class Encoder(OdriveProperty):
@@ -531,6 +550,18 @@ class Endstop(OdriveProperty):
     
                             
 class MechanicalBrake(OdriveProperty):
+    class Config(OdriveProperty):
+        def __init__(self, reference=None):
+            super().__init__(reference)
+            self._update()
+        
+        def _update(self):
+            if self._reference is None:
+                return
+            reference = self._reference
+            self.gpio_num = reference.gpio_num
+            self.is_active_low = reference.is_active_low
+        
     def __init__(self, reference=None):
         super().__init__(reference=reference)
         self._update()
@@ -539,10 +570,8 @@ class MechanicalBrake(OdriveProperty):
         if self._reference is None:
             return
         reference = self._reference
-        self.config = {
-            'gpio_num': reference.config.gpio_num,
-            'is_active_low': reference.config.is_active_low
-        }
+        self.config:self.Config = self.Config(reference=reference.config)
+        
     def engage():
         pass
     
@@ -571,26 +600,31 @@ class TaskTimer(OdriveProperty):
 
 
 class Axis(OdriveProperty):
-    class LockinConfig(OdriveProperty):
+    class Config(OdriveProperty):
         def __init__(self, reference=None):
-            super().__init__(reference=reference)
+            super().__init__(reference)
             self._update()
-        
+            
         def _update(self):
             if self._reference is None:
                 return
             reference = self._reference
-            self.current = reference.current
-            self.ramp_time = reference.ramp_time
-            self.ramp_distance =reference.ramp_distance
-            self.accel = reference.accel
-            self.vel = reference.vel
-            self.finish_distance = reference.finish_distance
-            self.finish_on_vel =reference.finish_on_vel
-            self.finish_on_distance = reference.finish_on_distance
-            self.finish_on_enc_idx =reference.finish_on_enc_idx
-            
-
+            self.startup_motor_calibration = reference.startup_motor_calibration
+            self.startup_encoder_index_search = reference.startup_encoder_index_search
+            self.startup_encoder_offset_calibration = reference.startup_encoder_offset_calibration
+            self.startup_closed_loop_control = reference.startup_closed_loop_control
+            self.startup_homing = reference.startup_homing
+            self.enable_step_dir = reference.enable_step_dir
+            self.step_dir_always_on = reference.step_dir_always_on
+            self.enable_sensorless_mode = reference.enable_sensorless_mode
+            self.watchdog_timeout = reference.watchdog_timeout
+            self.enable_watchdog = reference.enable_watchdog
+            self.step_gpio_pin = reference.step_gpio_pin
+            self.dir_gpio_pin = reference.dir_gpio_pin
+            self.calibration_lockin = CalibrationLockinConfig(reference=reference.calibration_lockin)    
+            self.sensorless_ramp = LockinConfig(reference=reference.sensorless_ramp)
+            self.general_lockin = LockinConfig(reference=reference.general_lockin)
+            self.can = Can(reference=reference.can)
    
     def __init__(self, reference=None):
         super().__init__(reference=reference)
@@ -612,30 +646,7 @@ class Axis(OdriveProperty):
         self.is_homed:bool = reference.is_homed
         
         
-        self.config:dict = {
-            'startup_motor_calibration': reference.config.startup_motor_calibration,
-            'startup_encoder_index_search': reference.config.startup_encoder_index_search,
-            'startup_encoder_offset_calibration': reference.config.startup_encoder_offset_calibration,
-            'startup_closed_loop_control': reference.config.startup_closed_loop_control,
-            'startup_homing': reference.config.startup_homing,
-            'enable_step_dir': reference.config.enable_step_dir,
-            'step_dir_always_on': reference.config.step_dir_always_on,
-            'enable_sensorless_mode': reference.config.enable_sensorless_mode,
-            'watchdog_timeout': reference.config.watchdog_timeout,
-            'enable_watchdog': reference.config.enable_watchdog,
-            'step_gpio_pin': reference.config.step_gpio_pin,
-            'dir_gpio_pin': reference.config.dir_gpio_pin,
-            'calibration_lockin': {
-                'current': reference.config.calibration_lockin.current,
-                'ramp_time': reference.config.calibration_lockin.ramp_time,
-                'ramp_distance': reference.config.calibration_lockin.ramp_distance,
-                'accel': reference.config.calibration_lockin.accel,
-                'vel': reference.config.calibration_lockin.vel
-            },
-            'sensorless_ramp': LockinConfig(reference=reference.config.sensorless_ramp),
-            'general_lockin': LockinConfig(reference=reference.config.general_lockin),
-            'can': Can(reference=reference.config.can)
-        }        
+        self.config:self.Config = self.Config(reference=reference.config)
 
         
         self.task_times:dict = {
@@ -691,7 +702,20 @@ class LockinConfig(OdriveProperty):
         self.finish_on_enc_idx = reference.finish_on_enc_idx
 
 
+class CalibrationLockinConfig(OdriveProperty):
+    def __init__(self, reference=None):
+        super().__init__(reference=reference)
+        self._update()
     
+    def _update(self):
+        if self._reference is None:
+            return
+        reference = self._reference
+        self.current = reference.current
+        self.ramp_time = reference.ramp_time
+        self.ramp_distance =reference.ramp_distance
+        self.accel = reference.accel
+        self.vel = reference.vel   
 
 class CanConfig(OdriveProperty):
     def __init__(self, reference=None):
@@ -943,17 +967,27 @@ class Odrive(OdriveProperty):
         while True:
             if self._reboot == False:
                 try:
-                    if count >= 5:
-                        self._update()
-                        self._sync()
+                    
+                    if MyOdrive.joystick['enabled'] is True:
+                        #print(f"joystick commanding input_pos {MyOdrive.joystick['x']} and {MyOdrive.joystick['y']}")
+                        self.axis0.controller._reference.input_pos = MyOdrive.joystick['y']
+                        self.axis1.controller._reference.input_pos = MyOdrive.joystick['x']
+                    
                     self._telem()
+                    """
+                    if count > 100:
+                        self._sync()
+                        count = 0                    
+                    count = count + 1
+                    """
+                    # TODO this needs to be faster.
                     #print("Odrive[" + self.serial_number + "] vbus_voltage =  " + str(self.vbus_voltage) + " volts.")
                 except Exception as ex:
                     print("Caught odrive exception in the thread function")
                     print(ex)
                     #run_flag = False
 
-            time.sleep(self._thread_update_time / 5)
+            time.sleep(0.05)
         
         # reset the reboot flag here
     
@@ -993,6 +1027,9 @@ class Odrive(OdriveProperty):
 
     
     def save_configuration(self) -> bool:
+        # Let's try the same reboot flag.
+        self._reboot = True
+        time.sleep(1)
         return self._odrive.save_configuration()
 
     
@@ -1109,6 +1146,13 @@ class MyOdrive():
     _remoteFunctionRequests = []
     _remotePropertyRequests = []
     _socketSendQueue = []
+    _joystickThread = None
+    joystick = { 'x': None, 
+                'y': None, 
+                'x_median': None, 
+                'y_median': None,
+                'enabled': False,
+                }
 
     
     def __init__(cls):        
@@ -1123,6 +1167,46 @@ class MyOdrive():
         cls._usbThread.start()
         cls._remoteQueueThread = Thread(target=cls.processRemoteRequests)
         cls._remoteQueueThread.start()
+        cls._joystickThread = Thread(target=cls.joystickThreadFunc)
+        cls._joystickThread.start()
+        
+    @classmethod
+    def joystickThreadFunc(cls):
+        print("Starting the joystick thread")
+        ser = serial.Serial('COM12', 9600, timeout=1)
+        time.sleep(2)
+        while True:
+            line = ser.readline()
+            if line:
+                line_str = line.decode().strip()
+                
+                split = line_str.split(",")
+                if len(split) == 2:
+                    x = (float(split[0]) - 512.0) / 1024.0
+                    y = (float(split[1]) - 512.0) / 1024.0 
+                    
+                    cls.joystick['timestamp'] = time.time()
+                    
+                    if cls.joystick['x_median'] is None:
+                        # initialize it.
+                        cls.joystick['x'] = x
+                        cls.joystick['y'] = y
+                        cls.joystick['x_median'] = [cls.joystick['x']] * 5
+                        cls.joystick['y_median'] = [cls.joystick['y']] * 5
+                    else :
+                        cls.joystick['x_median'].insert(0, x)
+                        cls.joystick['y_median'].insert(0, y)
+                        cls.joystick['x_median'].pop()
+                        cls.joystick['y_median'].pop()
+                        x = numpy.median(cls.joystick['x_median'])
+                        y = numpy.median(cls.joystick['y_median'])
+                    
+                    cls.joystick['x'] = x
+                    cls.joystick['y'] = y
+                    
+                                                                                
+                #print(cls.joystick)
+            
         
     @classmethod
     async def asyncUpdate(cls):
@@ -1153,8 +1237,8 @@ class MyOdrive():
                     print("Exception sending socketio message in Myodrive thread")
                     print(str(ex))
             
-            
-            await asyncio.sleep(1)
+            #await cls._socketio.emit("joystick", cls.joystick)
+            await asyncio.sleep(0.3)
 
     @classmethod
     def sendSocketMessageSync(cls, request_id, result):
@@ -1173,6 +1257,7 @@ class MyOdrive():
             sio.on("set", cls.remotePropertySet) # a property is being set remotely
             sio.on("add_telemetry", cls.addTelemetry)
             sio.on("remove_telemetry", cls.removeTelemetry)
+            sio.on("joystick", cls.joystickRemoteEvent)
             cls._socketio = sio    
             for od in cls._odrives.values():
                 od._socketio = sio # pass a handle to sio to the od instance
@@ -1180,6 +1265,15 @@ class MyOdrive():
             print("MyDrive.attachSocketIO() finished")
         else:
             print("Error, sio is None")
+    
+    @classmethod
+    async def joystickRemoteEvent(cls, sid, message):
+        print("Inside MyOdrive.joystickRemoteEvent()")
+        print(message)
+        if message['enable'] == True:
+            cls.joystick['enabled'] = True
+        elif message['enable'] == False:
+            cls.joystick['enabled'] = False
     
     @classmethod
     async def remoteCall(cls, sid, message):
@@ -1237,6 +1331,8 @@ class MyOdrive():
                     fun = getattr(property._reference, function_name)
                     if callable(fun):
                         print("Calling function " + function_name)
+                        if function_name == "reboot" or function_name == "save_configuration":
+                            odrive._reboot = True
                         result = None
                         if arguments is None:
                             result = fun()
@@ -1282,13 +1378,17 @@ class MyOdrive():
                 print(t)
                 
                 p= getattr(property, t)
-                if issubclass(type(p), OdriveProperty):
-                    property = p
+                #if issubclass(type(p), OdriveProperty):
+                property = p
                 
                 print("got property " + t)
                 
             # set it here
-            setattr(property._reference, new_property, value)
+            if issubclass(type(property), OdriveProperty):
+                property = property._reference
+                setattr(property, new_property, value)
+            elif type(property) is dict:
+                property[new_property] = value
             await cls._socketio.emit(request_id, {"result":"foobar"})
         except Exception as ex:
             print(ex)
@@ -1368,6 +1468,8 @@ class MyOdrive():
     
     @classmethod
     async def onTelemetry(cls, serial_number, telem_obj):
+        telem_obj['joystick_x'] = cls.joystick['x']
+        telem_obj['joystick_y'] = cls.joystick['y']
         await cls._socketio.emit("telem", { str(serial_number): telem_obj })
     
     @classmethod
